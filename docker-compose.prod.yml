@@ -1,0 +1,41 @@
+# Same as docker-compose.yml but with Caddy HTTPS (set DOMAIN in .env).
+services:
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    volumes:
+      - ollama_data:/root/.ollama
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      - ollama
+    environment:
+      PORT: "8080"
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:3b}
+      OLLAMA_PULL_ON_START: "1"
+      USE_OLLAMA: "1"
+    expose:
+      - "8080"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  ollama_data:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,45 @@
+{
+  "name": "leonardo-museum-web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:api": "tsx scripts/dev-api.ts",
+    "dev:full": "concurrently -k \"npm run dev:api\" \"npm run dev\"",
+    "build": "vite build",
+    "fetch-art": "bash scripts/fetch-authentic-art.sh && bash scripts/fetch-modern-art.sh && bash scripts/assign-codex-art.sh",
+    "verify-art": "node scripts/verify-art-unique.mjs",
+    "prep:vercel": "bash scripts/prep-vercel.sh",
+    "corpus": "node scripts/build-corpus.mjs",
+    "test:cortex": "tsx scripts/test-cortex.ts",
+    "preview": "vite preview",
+    "serve": "npm run build && node scripts/serve-public.mjs",
+    "start": "tsx scripts/railway-server.ts",
+    "docker:up": "docker compose up -d --build",
+    "docker:prod": "docker compose -f docker-compose.prod.yml --env-file .env up -d --build",
+    "docker:logs": "docker compose logs -f app ollama",
+    "deploy:aws": "bash scripts/deploy-aws-github.sh",
+    "zip:vercel": "bash scripts/make-vercel-zip.sh",
+    "netlify": "bash scripts/netlify-drop.sh",
+    "push:github": "bash scripts/push-github.sh"
+  },
+  "dependencies": {
+    "framer-motion": "^12.40.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.6.2",
+    "tailwindcss": "^4.3.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.1",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "@vercel/node": "^5.1.14",
+    "@vitejs/plugin-react": "^4.5.2",
+    "concurrently": "^9.2.0",
+    "tsx": "^4.20.3",
+    "typescript": "~5.9.2",
+    "vite": "^6.3.5"
+  }
+}

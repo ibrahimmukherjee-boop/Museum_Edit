@@ -1,0 +1,53 @@
+name: Deploy Leonardo Museum (Ollama + app)
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push app image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository }}/leonardo-museum:latest
+            ${{ env.REGISTRY }}/${{ github.repository }}/leonardo-museum:${{ github.sha }}
+
+      - name: Deploy to server via SSH
+        if: ${{ secrets.DEPLOY_HOST != '' }}
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -e
+            cd /opt/leonardo-museum
+            git pull origin main || git pull origin master || true
+            export IMAGE=${{ env.REGISTRY }}/${{ github.repository }}/leonardo-museum:latest
+            docker compose pull || true
+            docker compose build app
+            docker compose up -d
+            sleep 15
+            curl -fsS http://127.0.0.1:8080/api/health

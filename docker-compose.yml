@@ -1,0 +1,31 @@
+# Production: museum app + self-hosted Ollama SLM (unlimited polish, no API keys).
+services:
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    volumes:
+      - ollama_data:/root/.ollama
+    # 3B model needs ~4GB RAM for comfortable inference
+    deploy:
+      resources:
+        limits:
+          memory: 6G
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      - ollama
+    environment:
+      PORT: "8080"
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:3b}
+      OLLAMA_PULL_ON_START: "1"
+      USE_OLLAMA: "1"
+      # Optional cloud fallback (leave empty for Ollama-only):
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+    ports:
+      - "${APP_PORT:-8080}:8080"
+
+volumes:
+  ollama_data:
