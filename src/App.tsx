@@ -1,4 +1,5 @@
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
+import { MuseumErrorBoundary } from "./components/MuseumErrorBoundary";
 import { isLoggedIn } from "./lib/auth";
 import AtelierHubPage from "./pages/AtelierHubPage";
 import AtelierRoomPage from "./pages/AtelierRoomPage";
@@ -19,8 +20,8 @@ export default function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/parlor" element={<ConversationPage />} />
         <Route path="/conversation" element={<Navigate to="/parlor" replace />} />
-        <Route path="/atelier" element={<AtelierHubPage />} />
-        <Route path="/atelier/:domain" element={<AtelierRoomPage />} />
+        <Route path="/atelier" element={<MuseumErrorBoundary label="Atelier"><AtelierHubPage /></MuseumErrorBoundary>} />
+        <Route path="/atelier/:domain" element={<MuseumErrorBoundary label="Atelier workshop"><AtelierRoomPage /></MuseumErrorBoundary>} />
       </Route>
       <Route path="*" element={<Navigate to={isLoggedIn() ? "/" : "/login"} replace />} />
     </Routes>

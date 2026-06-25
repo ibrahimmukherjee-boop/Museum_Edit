@@ -5,9 +5,15 @@ export function routeZone(input: CortexInput): LeonardoZone {
     return input.folioContext.domain as LeonardoZone;
   }
   const q = input.question.toLowerCase();
-  if (/\b(anatom|body|muscle|bone|eye|dissect|heart|flesh|skull|womb)\b/.test(q)) return "anatomy";
-  if (/\b(fly|flight|machine|wing|water|engineer|ornithopter|canal|tank|screw)\b/.test(q)) return "engineering";
-  if (/\b(paint|light|sfumato|portrait|panel|colour|color|canvas|studio|chiaroscuro)\b/.test(q)) return "art";
+  if (/\b(anatom|bodies|body|muscle|bone|eye|dissect|heart|flesh|skull|womb|corpse|vein)\b/.test(q)) return "anatomy";
+  if (
+    /\b(fly|flying|flies|flight|flights|machine|machines|aircraft|airplane|aeroplane|plane|planes|helicopter|jet|wing|wings|water wheel|ornithopter|engineering|engineer|engineers|canal|tank|tanks|screw|aerial|propeller|drone)\b/.test(
+      q,
+    )
+  )
+    return "engineering";
+  if (/\b(paint|light|sfumato|portrait|panel|colour|color|canvas|studio|chiaroscuro|mona lisa|easel|pigment)\b/.test(q))
+    return "art";
   return "general";
 }
 

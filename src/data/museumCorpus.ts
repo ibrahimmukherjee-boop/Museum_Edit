@@ -43,73 +43,11 @@ export interface WebFolio {
   prompts: string[];
   attribution?: string;
   popout?: FolioPopout;
+  soundscape?: "studio" | "dissection" | "workshop" | "water" | "flight";
 }
 
-/** Authentic excerpts — Treatise on Painting, Codex Atlanticus, Windsor anatomical sheets, Codex Leicester (V&A / Royal Collection). */
+/** Authentic excerpts — Treatise on Painting, Codex Atlanticus, Windsor anatomical sheets. */
 export const notebooks: NotebookEntry[] = [
-  {
-    id: "art-1",
-    domain: "art",
-    title: "On the Motion of the Soul in Painting",
-    codex: "Codex Urbinas (Treatise on Painting), Biblioteca Vaticana",
-    year: "c. 1490–1515",
-    excerpt:
-      "The painter must be universal — he must understand the nature of all things he wishes to represent. The eye, which is called the window of the soul, is the principal means by which the soul can most fully appreciate the infinite works of nature.",
-    prompts: ["How do you capture the soul of a sitter in a portrait?", "What did you mean by saper vedere — knowing how to see?"],
-    imageKey: "codex-art-1",
-  },
-  {
-    id: "art-2",
-    domain: "art",
-    title: "Light and Shadow",
-    codex: "Codex Atlanticus, fol. 393r, Biblioteca Ambrosiana, Milan",
-    year: "c. 1495",
-    excerpt:
-      "Shadow is the diminution or absence of light. The shadows cast by bodies are of the same nature as the bodies that produce them.",
-    prompts: ["How did you plan the light for the Last Supper?", "Why is sfumato essential to your portraits?"],
-    imageKey: "codex-art-2",
-  },
-  {
-    id: "art-3",
-    domain: "art",
-    title: "The Proportions of Man",
-    codex: "Vitruvian Man, Accademia Gallery, Venice",
-    year: "c. 1490",
-    excerpt:
-      "If you open your legs so much as to decrease your height by one-fourteenth, and raise your hands till your extended fingers touch the line of the top of your head, know that the centre of the extended limbs will be at the navel.",
-    prompts: ["Explain the Vitruvian Man drawing.", "How do art and mathematics unite in your work?"],
-    imageKey: "codex-art-3",
-  },
-  {
-    id: "art-4",
-    domain: "art",
-    title: "On Sfumato",
-    codex: "Treatise on Painting (Codex Urbinas)",
-    year: "c. 1490–1515",
-    excerpt: "Sfumato is without lines or borders, in the manner of smoke or beyond the focus of the eye.",
-    prompts: ["How do you achieve sfumato in a portrait?"],
-    imageKey: "codex-art-4",
-  },
-  {
-    id: "art-5",
-    domain: "art",
-    title: "The Mirror of the Painter",
-    codex: "Codex Atlanticus, fol. 207r",
-    year: "c. 1492",
-    excerpt: "The mirror is the master of painters. I say that the mirror is the true master of painters.",
-    prompts: ["Why did you write backwards in your notebooks?"],
-    imageKey: "codex-art-5",
-  },
-  {
-    id: "art-6",
-    domain: "art",
-    title: "The Battle of Anghiari",
-    codex: "Lost cartoon, Palazzo Vecchio (known through copies)",
-    year: "c. 1503–1506",
-    excerpt: "In the fury of battle I sought to show horses and men interlocked, none repeating the same action.",
-    prompts: ["Tell me of the Battle of Anghiari."],
-    imageKey: "codex-art-6",
-  },
   {
     id: "anatomy-1",
     domain: "anatomy",
@@ -119,7 +57,7 @@ export const notebooks: NotebookEntry[] = [
     excerpt:
       "I have dissected more than ten human bodies, destroying all the other members and removing the very minutest particles of flesh which surrounded these veins.",
     prompts: ["What did you discover by dissecting cadavers?"],
-    imageKey: "codex-anatomy-1",
+    imageKey: "anatomy-shoulder",
   },
   {
     id: "anatomy-2",
@@ -129,17 +67,17 @@ export const notebooks: NotebookEntry[] = [
     year: "c. 1513",
     excerpt: "The heart is of itself a muscle, and it is the principle that gives warmth to the blood.",
     prompts: ["What did you understand about the heart?"],
-    imageKey: "codex-anatomy-2",
+    imageKey: "heart-blood",
   },
   {
     id: "anatomy-3",
     domain: "anatomy",
-    title: "Muscles of the Shoulder",
-    codex: "Codex Windsor, layered dissection studies",
-    year: "c. 1510",
-    excerpt: "The shoulder is the joint of greatest liberty in the human frame.",
-    prompts: ["Why did you draw muscles in layers?"],
-    imageKey: "codex-anatomy-3",
+    title: "The Skull Sectioned",
+    codex: "Royal Collection, Windsor",
+    year: "c. 1489",
+    excerpt: "I sawed the skull to count its chambers — structure beneath the face the painter must know.",
+    prompts: ["What did the skull teach you?"],
+    imageKey: "skull-sections",
   },
   {
     id: "anatomy-4",
@@ -149,7 +87,7 @@ export const notebooks: NotebookEntry[] = [
     year: "c. 1508",
     excerpt: "The eye modifies the light that passes through it, and the pupil dilates and contracts.",
     prompts: ["Describe the eye as you understood it."],
-    imageKey: "codex-anatomy-4",
+    imageKey: "anatomy-eye",
   },
   {
     id: "anatomy-5",
@@ -159,17 +97,37 @@ export const notebooks: NotebookEntry[] = [
     year: "c. 1511",
     excerpt: "I drew the child curled in its chamber with the placenta and umbilical cord, as nature revealed it.",
     prompts: ["What did you learn from studying the womb?"],
-    imageKey: "codex-anatomy-5",
+    imageKey: "anatomy-embryo",
   },
   {
     id: "anatomy-6",
     domain: "anatomy",
-    title: "The Spine",
-    codex: "Codex Windsor",
-    year: "c. 1510",
-    excerpt: "The spine is a column of bones separated by cartilage, bending with grace when the figure moves.",
-    prompts: ["How did you study the spine?"],
-    imageKey: "codex-anatomy-6",
+    title: "The Anatomy of the Thigh",
+    codex: "Royal Collection, Windsor, RCIN 912618",
+    year: "c. 1485–1488",
+    excerpt: "Layer upon layer, muscle sheaths bone; the thigh carries the weight of the standing figure.",
+    prompts: ["How did you study the muscles of the leg?"],
+    imageKey: "anatomy-thigh",
+  },
+  {
+    id: "anatomy-7",
+    domain: "anatomy",
+    title: "The Foot and Calf",
+    codex: "Royal Collection, Windsor, RCIN 919094",
+    year: "c. 1510–1513",
+    excerpt: "Every tendon in the foot is a lever; the calf is the engine that moves the body forward.",
+    prompts: ["What does the foot reveal about movement?"],
+    imageKey: "anatomy-foot-calf",
+  },
+  {
+    id: "anatomy-8",
+    domain: "anatomy",
+    title: "The Anatomy of a Bear's Foot",
+    codex: "Royal Collection, Windsor, RCIN 912372",
+    year: "c. 1488–1490",
+    excerpt: "I studied the bear's foot to understand claw and pad, then compared it with man's own structure.",
+    prompts: ["Why did you dissect a bear's foot?"],
+    imageKey: "anatomy-bears-foot",
   },
   {
     id: "eng-1",
@@ -179,58 +137,67 @@ export const notebooks: NotebookEntry[] = [
     year: "c. 1485–1490",
     excerpt: "A bird is an instrument working according to mathematical law, which instrument it is within the power of man to reproduce.",
     prompts: ["Did your ornithopter ever fly?"],
-    imageKey: "codex-eng-1",
+    imageKey: "ornithopter",
   },
   {
     id: "eng-2",
-    domain: "engineering",
-    title: "Water, Earth, and the Arno",
-    codex: "Codex Leicester (Bill Gates Collection)",
-    year: "c. 1508",
-    excerpt: "Water is the driver of nature. Its vortices obey laws I sought to write down.",
-    prompts: ["What did you learn from studying the Arno river?"],
-    imageKey: "codex-eng-2",
-  },
-  {
-    id: "eng-3",
     domain: "engineering",
     title: "Armoured War Machine",
     codex: "Codex Atlanticus, fol. 1478",
     year: "c. 1485",
     excerpt: "I have designed machines both for attack and defence — a turtle of wood and metal bristling with guns.",
     prompts: ["Tell me about your tank design."],
-    imageKey: "codex-eng-3",
+    imageKey: "tank",
+  },
+  {
+    id: "eng-3",
+    domain: "engineering",
+    title: "Water, Earth, and the Arno",
+    codex: "Codex Leicester / Atlanticus water studies",
+    year: "c. 1508",
+    excerpt: "Water is the driver of nature. Its vortices obey laws I sought to write down.",
+    prompts: ["What did swirling water teach you about motion?"],
+    imageKey: "water-study",
   },
   {
     id: "eng-4",
     domain: "engineering",
-    title: "Parachute and Aerial Screw",
-    codex: "Codex Atlanticus",
-    year: "c. 1485",
-    excerpt:
-      "If a man have a tent of linen twelve braccia wide, he may throw himself from any height without injury to himself.",
-    prompts: ["Did you invent the parachute?"],
-    imageKey: "codex-eng-4",
+    title: "The Archimedes Screw",
+    codex: "Codex Atlanticus, water-lifting devices",
+    year: "c. 1487",
+    excerpt: "A screw turned in a tube can lift water against the pull of the earth — useful for irrigation and draining marshland.",
+    prompts: ["How does the water screw work?"],
+    imageKey: "water-screw",
   },
   {
     id: "eng-5",
     domain: "engineering",
-    title: "Canals and Locks for Milan",
-    codex: "Codex Atlanticus, Milan canal studies",
-    year: "c. 1487",
-    excerpt: "To bring prosperity to Milan I proposed canals with locks, that boats might rise as water falls.",
-    prompts: ["Tell me of your canal designs."],
-    imageKey: "codex-eng-5",
+    title: "The Aerial Screw",
+    codex: "Codex Atlanticus, fol. 83v",
+    year: "c. 1487–1490",
+    excerpt: "If this instrument made of starched linen is turned swiftly, the screw will tighten and rise into the air.",
+    prompts: ["Was the aerial screw the ancestor of the helicopter?"],
+    imageKey: "flying-machine",
   },
   {
     id: "eng-6",
     domain: "engineering",
-    title: "Geology and Fossils",
-    codex: "Codex Leicester",
-    year: "c. 1508",
-    excerpt: "Shells found upon mountain peaks were once creatures of the sea — the mountains were made before the valleys.",
-    prompts: ["What did fossils teach you?"],
-    imageKey: "codex-eng-6",
+    title: "The Giant Crossbow",
+    codex: "Codex Atlanticus, fol. 149a",
+    year: "c. 1485",
+    excerpt: "A great crossbow of six brass spans, designed to hurl stones and strike terror before it fires.",
+    prompts: ["What was the purpose of such an enormous crossbow?"],
+    imageKey: "crossbow",
+  },
+  {
+    id: "eng-7",
+    domain: "engineering",
+    title: "The Golden Horn Bridge",
+    codex: " notebook on civil engineering, c. 1502",
+    year: "c. 1502",
+    excerpt: "A single flattened arch of three hundred paces — a bridge strong enough to cross the water without piers.",
+    prompts: ["How could a bridge span so far without supports?"],
+    imageKey: "bridge",
   },
 ];
 
@@ -254,7 +221,7 @@ export const paintings: PaintingEntry[] = [
     location: "Santa Maria delle Grazie, Milan",
     description: "Christ at the centre of twelve apostles at the moment Judas reaches for the bread. Light falls from the left as betrayal breaks the communion.",
     prompts: ["How did you plan the light for the Last Supper?"],
-    imageKey: "last-supper",
+    imageKey: "last-supper-hires",
     popout: { objectPosition: "50% 30%", bottom: "-20%", width: "70%", height: "48%" },
   },
   {
@@ -276,7 +243,7 @@ export const paintings: PaintingEntry[] = [
     location: "Gallerie dell'Accademia, Venice",
     description: "Man inscribed in circle and square — proportion as bridge between architecture, anatomy, and the cosmos.",
     prompts: ["Explain the Vitruvian Man."],
-    imageKey: "vitruvian-man",
+    imageKey: "vitruvian-man-hires",
     popout: { objectPosition: "50% 40%", bottom: "-18%", width: "75%", height: "55%" },
   },
   {
@@ -285,10 +252,10 @@ export const paintings: PaintingEntry[] = [
     title: "Lady with an Ermine",
     year: "c. 1489–1491",
     location: "Czartoryski Museum, Kraków",
-    description: "Cecilia Gallerani turns with the ermine — gesture and animal alike reveal the sitter's intelligence.",
-    prompts: ["Who was Cecilia Gallerani?"],
+    description: "Cecilia Gallerani turns with sudden grace, the ermine alert in her arms — life caught in a moment of interrupted movement.",
+    prompts: ["Why did you include the ermine in this portrait?"],
     imageKey: "lady-ermine",
-    popout: { objectPosition: "55% 35%", bottom: "-20%", width: "62%", height: "50%" },
+    popout: { objectPosition: "45% 25%", bottom: "-24%", width: "62%", height: "54%" },
   },
   {
     id: "saint-john",
@@ -296,76 +263,32 @@ export const paintings: PaintingEntry[] = [
     title: "Saint John the Baptist",
     year: "c. 1513–1516",
     location: "Musée du Louvre, Paris",
-    description: "The Baptist emerges from darkness, finger pointing heavenward — flesh modelled in smoky chiaroscuro.",
-    prompts: ["What does the pointing finger mean?"],
+    description: "The Baptist emerges from darkness, one finger raised toward light. His smile is the same enigma I painted in the Mona Lisa.",
+    prompts: ["Why does Saint John point upward?"],
     imageKey: "saint-john",
-    popout: { objectPosition: "48% 28%", bottom: "-22%", width: "60%", height: "54%" },
+    popout: { objectPosition: "50% 28%", bottom: "-22%", width: "60%", height: "56%" },
   },
   {
     id: "battle-anghiari",
     domain: "art",
-    title: "The Battle of Anghiari (copy after lost mural)",
+    title: "The Battle of Anghiari",
     year: "c. 1503–1506",
-    location: "Lost mural — known via Rubens copy, Louvre",
-    description: "Horses and warriors locked in fury; the lost mural survives only in copies, yet the violence of motion remains.",
-    prompts: ["How do you paint motion and violence?"],
+    location: "Palazzo Vecchio, Florence (lost; Rubens copy)",
+    description: "Horses and men entangled in rage — a study of fury, muscle, and the geometry of battle. The original fresco is lost, but copies preserve its violence.",
+    prompts: ["What were you trying to capture in the battle scene?"],
     imageKey: "battle-anghiari",
-    popout: { objectPosition: "40% 45%", bottom: "-16%", width: "80%", height: "45%" },
+    popout: { objectPosition: "50% 35%", bottom: "-20%", width: "72%", height: "50%" },
   },
   {
-    id: "anatomy-shoulder",
-    domain: "anatomy",
-    title: "Muscles of the Shoulder and Arm",
-    year: "c. 1510",
-    location: "Royal Collection, Windsor",
-    description: "Layered dissections revealing how muscle wraps bone — the shoulder's liberty of movement governs every gesture I paint.",
-    prompts: ["Why study the shoulder?"],
-    imageKey: "anatomy-shoulder",
-    popout: { objectPosition: "50% 40%", bottom: "-20%", width: "72%", height: "50%" },
-  },
-  {
-    id: "skull-sections",
-    domain: "anatomy",
-    title: "The Skull Sectioned",
-    year: "c. 1489",
-    location: "Royal Collection, Windsor",
-    description: "I sawed the skull to count its chambers — structure beneath the face the painter must know.",
-    prompts: ["What did the skull teach you?"],
-    imageKey: "skull-sections",
-    popout: { objectPosition: "50% 50%", bottom: "-18%", width: "68%", height: "48%" },
-  },
-  {
-    id: "heart-blood",
-    domain: "anatomy",
-    title: "The Heart and Lungs",
-    year: "c. 1513",
-    location: "Royal Collection, Windsor",
-    description: "Four chambers, vortices of blood — the heart as furnace of the living body.",
-    prompts: ["What did you understand about the heart?"],
-    imageKey: "heart-blood",
-    popout: { objectPosition: "45% 45%", bottom: "-19%", width: "70%", height: "50%" },
-  },
-  {
-    id: "anatomy-eye",
-    domain: "anatomy",
-    title: "Studies of the Eye",
-    year: "c. 1508",
-    location: "Royal Collection, Windsor",
-    description: "The eye bends light through humours — window of the soul and instrument of the painter alike.",
-    prompts: ["How does the eye relate to painting?"],
-    imageKey: "anatomy-eye",
-    popout: { objectPosition: "50% 35%", bottom: "-21%", width: "64%", height: "52%" },
-  },
-  {
-    id: "anatomy-embryo",
-    domain: "anatomy",
-    title: "The Fetus in the Womb",
-    year: "c. 1511",
-    location: "Royal Collection, Windsor",
-    description: "Life before birth, curled with placenta — wonder at the machine nature builds in secret.",
-    prompts: ["Why draw the fetus?"],
-    imageKey: "anatomy-embryo",
-    popout: { objectPosition: "50% 55%", bottom: "-17%", width: "66%", height: "46%" },
+    id: "virgin-rocks",
+    domain: "art",
+    title: "The Virgin of the Rocks",
+    year: "c. 1483–1486",
+    location: "National Gallery, London",
+    description: "Mary, the angel, the infant Christ and John gathered in a grotto of impossible light. Rock, water, and flesh dissolve into one another.",
+    prompts: ["How did you create the atmosphere in the grotto?"],
+    imageKey: "virgin-of-rocks-hires",
+    popout: { objectPosition: "50% 30%", bottom: "-22%", width: "66%", height: "52%" },
   },
 ];
 
@@ -375,7 +298,15 @@ const PRESENCE_BY_DOMAIN: Record<LeonardoZone, string> = {
   engineering: "From the notebook, machines you know today begin to rise.",
 };
 
-const ATTRIBUTION = "Public domain via Wikimedia Commons / Royal Collection Trust / V&A";
+const ATTRIBUTION = "Public domain via Wikimedia Commons / Royal Collection Trust";
+
+function soundscapeForDomain(domain: LeonardoZone, imageKey: string): WebFolio["soundscape"] {
+  if (domain === "art") return "studio";
+  if (domain === "anatomy") return "dissection";
+  if (imageKey === "water-study" || imageKey === "water-screw") return "water";
+  if (imageKey === "ornithopter" || imageKey === "flying-machine") return "flight";
+  return "workshop";
+}
 
 function paintingFolios(): WebFolio[] {
   return paintings.map((p) => ({
@@ -391,6 +322,7 @@ function paintingFolios(): WebFolio[] {
     prompts: p.prompts,
     attribution: ATTRIBUTION,
     popout: p.popout,
+    soundscape: soundscapeForDomain(p.domain, p.imageKey),
   }));
 }
 
@@ -413,27 +345,19 @@ function codexFolios(): WebFolio[] {
       width: "72%",
       height: "50%",
     },
+    soundscape: soundscapeForDomain(e.domain, e.imageKey),
   }));
 }
 
-function interleaveDomain(domain: LeonardoZone, p: WebFolio[], c: WebFolio[]): WebFolio[] {
-  const pd = p.filter((f) => f.domain === domain);
-  const cd = c.filter((f) => f.domain === domain);
-  if (domain === "engineering") return cd;
-  const folios: WebFolio[] = [];
-  const max = Math.max(pd.length, cd.length);
-  for (let i = 0; i < max; i++) {
-    if (pd[i]) folios.push(pd[i]);
-    if (cd[i]) folios.push(cd[i]);
-  }
-  return folios;
+function foliosForDomain(domain: LeonardoZone, p: WebFolio[], c: WebFolio[]): WebFolio[] {
+  return [...p.filter((f) => f.domain === domain), ...c.filter((f) => f.domain === domain)];
 }
 
-function interleaveFolios(): WebFolio[] {
+function buildFolios(): WebFolio[] {
   const p = paintingFolios();
   const c = codexFolios();
-  return (["art", "anatomy", "engineering"] as LeonardoZone[]).flatMap((d) => interleaveDomain(d, p, c));
+  return (["art", "anatomy", "engineering"] as LeonardoZone[]).flatMap((d) => foliosForDomain(d, p, c));
 }
 
-export const FOLIO_SCROLL = interleaveFolios();
-export const corpus = { notebooks, paintings, folios: FOLIO_SCROLL };
+export const FOLIO_SCROLL = buildFolios();
+export const corpus = { notebooks, paintings, FOLIO_SCROLL };

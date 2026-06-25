@@ -25,10 +25,14 @@ jobs:
           node-version: "22"
           cache: npm
 
-      - name: Install and build
+      - name: Install, sync art (committed), build
+        env:
+          GITHUB_ACTIONS: true
+          GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           npm ci
           npm run test:cortex
+          test -f public/art/mona-lisa.jpg || (echo "ERROR: public/art not in repo — run npm run sync:assets locally and commit" && exit 1)
           npm run build
 
       - uses: actions/upload-pages-artifact@v3

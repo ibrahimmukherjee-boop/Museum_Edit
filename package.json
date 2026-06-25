@@ -7,14 +7,17 @@
     "dev": "vite",
     "dev:api": "tsx scripts/dev-api.ts",
     "dev:full": "concurrently -k \"npm run dev:api\" \"npm run dev\"",
-    "build": "vite build",
+    "build": "npm run sync:assets && vite build",
     "fetch-art": "bash scripts/fetch-authentic-art.sh && bash scripts/fetch-modern-art.sh && bash scripts/assign-codex-art.sh",
     "verify-art": "node scripts/verify-art-unique.mjs",
     "prep:vercel": "bash scripts/prep-vercel.sh",
     "corpus": "node scripts/build-corpus.mjs",
     "test:cortex": "tsx scripts/test-cortex.ts",
     "preview": "vite preview",
-    "serve": "npm run build && node scripts/serve-public.mjs",
+    "serve": "npm run sync:assets && npm run build && npx concurrently -k \"npm run dev:api\" \"node scripts/serve-public.mjs\"",
+    "museum": "npx concurrently -k \"npm run dev:api\" \"npm run dev\"",
+    "sync:assets": "node scripts/sync-da-vinci-assets.mjs",
+    "setup:glm": "node scripts/setup-glm.mjs",
     "start": "tsx scripts/railway-server.ts",
     "docker:up": "docker compose up -d --build",
     "docker:prod": "docker compose -f docker-compose.prod.yml --env-file .env up -d --build",
@@ -25,11 +28,14 @@
     "push:github": "bash scripts/push-github.sh"
   },
   "dependencies": {
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.6.1",
     "framer-motion": "^12.40.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.6.2",
-    "tailwindcss": "^4.3.1"
+    "tailwindcss": "^4.3.1",
+    "three": "^0.184.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.1",

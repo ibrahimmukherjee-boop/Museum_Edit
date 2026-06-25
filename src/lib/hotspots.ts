@@ -9,6 +9,7 @@ export interface Hotspot {
 }
 
 export const FOLIO_HOTSPOTS: Record<string, Hotspot[]> = {
+  // —— Studio ——
   "p-annunciation": [
     { id: "angel", x: 4, y: 20, w: 32, h: 75, label: "The Angel", prompt: "Leonardo, how did you paint the angel's wings and the light around Gabriel?" },
     { id: "mary", x: 52, y: 25, w: 35, h: 70, label: "Virgin Mary", prompt: "What were you seeking in Mary's gesture and expression in The Annunciation?" },
@@ -28,66 +29,34 @@ export const FOLIO_HOTSPOTS: Record<string, Hotspot[]> = {
     { id: "circle", x: 15, y: 10, w: 70, h: 80, label: "Circle & Square", prompt: "Why did you inscribe man in both circle and square?" },
     { id: "navel", x: 42, y: 48, w: 16, h: 12, label: "The Navel", prompt: "What does the navel as centre of proportion mean to you?" },
   ],
-  "c-art-1": [
-    { id: "eye", x: 10, y: 20, w: 80, h: 25, label: "Window of the Soul", prompt: "You wrote the eye is the window of the soul — explain this to me." },
-    { id: "universal", x: 10, y: 50, w: 80, h: 35, label: "Universal Painter", prompt: "Why must the painter be universal in knowledge?" },
+
+  "p-lady-ermine": [
+    { id: "ermine", x: 35, y: 30, w: 30, h: 45, label: "The Ermine", prompt: "Why did you include the ermine in Cecilia's portrait?" },
+    { id: "gaze", x: 38, y: 22, w: 28, h: 20, label: "Her Gaze", prompt: "What were you seeking in her turned gaze?" },
   ],
+  "p-saint-john": [
+    { id: "finger", x: 40, y: 25, w: 22, h: 35, label: "Raised Finger", prompt: "Why does Saint John point upward?" },
+    { id: "smile", x: 38, y: 20, w: 28, h: 22, label: "The Smile", prompt: "Is this the same enigma you painted in the Mona Lisa?" },
+  ],
+  "p-battle-anghiari": [
+    { id: "horses", x: 15, y: 25, w: 70, h: 45, label: "The Horses", prompt: "What were you trying to capture in the fury of battle?" },
+    { id: "faces", x: 25, y: 35, w: 50, h: 35, label: "Faces of Rage", prompt: "How did you study rage in the faces of warriors?" },
+  ],
+  "p-virgin-rocks": [
+    { id: "grotto", x: 10, y: 15, w: 80, h: 70, label: "The Grotto", prompt: "How did you create the atmosphere in the grotto?" },
+    { id: "mary", x: 35, y: 25, w: 30, h: 50, label: "Mary", prompt: "How did you dissolve rock, water, and flesh into one light?" },
+  ],
+
+  // —— Dissection ——
   "c-anatomy-1": [
     { id: "veins", x: 15, y: 30, w: 70, h: 40, label: "The Vessels", prompt: "What did you see when you traced the course of the veins?" },
     { id: "knife", x: 60, y: 10, w: 30, h: 30, label: "The Knife", prompt: "How did dissection at Santa Maria Nuova change your art?" },
   ],
-  "p-ornithopter": [
-    { id: "wings", x: 10, y: 15, w: 80, h: 50, label: "The Wings", prompt: "How did you study birds to design this flying machine?" },
-    { id: "pilot", x: 35, y: 45, w: 30, h: 40, label: "The Pilot", prompt: "Did you believe man could truly fly in your age?" },
-  ],
-  "p-lady-ermine": [
-    { id: "ermine", x: 55, y: 45, w: 30, h: 35, label: "The Ermine", prompt: "Why did you place an ermine in Cecilia's arms?" },
-    { id: "gesture", x: 25, y: 30, w: 40, h: 50, label: "Her Gesture", prompt: "How does gesture reveal character in portraiture?" },
-  ],
-  "p-saint-john": [
-    { id: "finger", x: 42, y: 35, w: 20, h: 40, label: "Pointing Finger", prompt: "What does the Baptist's finger toward heaven signify?" },
-    { id: "smile", x: 38, y: 20, w: 28, h: 22, label: "The Smile", prompt: "Why paint John with such an enigmatic smile?" },
-  ],
-  "p-tank": [
-    { id: "shell", x: 15, y: 25, w: 70, h: 55, label: "Armoured Shell", prompt: "How did you conceive this turtle-shaped war machine?" },
-    { id: "cannons", x: 20, y: 40, w: 60, h: 30, label: "The Cannons", prompt: "Why array cannons in every direction on one vehicle?" },
-  ],
-  "p-water-study": [
-    { id: "vortex", x: 30, y: 35, w: 45, h: 40, label: "The Vortex", prompt: "What did swirling water teach you about motion?" },
-    { id: "arno", x: 10, y: 60, w: 80, h: 30, label: "The Arno", prompt: "How did the Arno river shape your engineering?" },
-  ],
-  "p-skull-sections": [
-    { id: "chambers", x: 35, y: 25, w: 35, h: 45, label: "Skull Chambers", prompt: "Why did you saw the skull to study its chambers?" },
-  ],
-  "p-heart-blood": [
+  "c-anatomy-2": [
     { id: "chambers", x: 30, y: 30, w: 45, h: 45, label: "Four Chambers", prompt: "What did you discover about the heart's chambers?" },
   ],
-  "c-art-2": [
-    { id: "shadow", x: 15, y: 35, w: 70, h: 35, label: "Shadow & Light", prompt: "How did shadow shape the drama of the Last Supper?" },
-  ],
-  "c-eng-1": [
-    { id: "bird", x: 20, y: 20, w: 65, h: 50, label: "The Bird", prompt: "You wrote a bird is an instrument of mathematical law — explain." },
-  ],
-  "c-eng-2": [
-    { id: "vortex", x: 25, y: 30, w: 50, h: 45, label: "Water Vortex", prompt: "What did swirling water teach you about motion and power?" },
-  ],
-  "c-eng-3": [
-    { id: "shell", x: 15, y: 25, w: 70, h: 55, label: "Armoured Shell", prompt: "How did you conceive this turtle-shaped war machine?" },
-  ],
-  "c-eng-4": [
-    { id: "screw", x: 30, y: 20, w: 45, h: 55, label: "Aerial Screw", prompt: "Did you imagine this screw could lift a man into the air?" },
-  ],
-  "c-eng-5": [
-    { id: "lock", x: 20, y: 35, w: 60, h: 45, label: "Canal Lock", prompt: "How would your locks bring prosperity to Milan?" },
-  ],
-  "c-eng-6": [
-    { id: "fossil", x: 25, y: 30, w: 55, h: 45, label: "Fossil Shell", prompt: "What did fossils on mountain peaks teach you about time?" },
-  ],
-  "c-anatomy-2": [
-    { id: "heart", x: 30, y: 30, w: 45, h: 45, label: "The Heart", prompt: "What did you understand about the heart's chambers?" },
-  ],
   "c-anatomy-3": [
-    { id: "shoulder", x: 20, y: 25, w: 60, h: 50, label: "Shoulder Joint", prompt: "Why is the shoulder the joint of greatest liberty?" },
+    { id: "skull", x: 35, y: 25, w: 35, h: 45, label: "Skull Chambers", prompt: "Why did you saw the skull to study its chambers?" },
   ],
   "c-anatomy-4": [
     { id: "eye", x: 30, y: 25, w: 45, h: 40, label: "The Eye", prompt: "How does the eye bend light through its humours?" },
@@ -96,32 +65,39 @@ export const FOLIO_HOTSPOTS: Record<string, Hotspot[]> = {
     { id: "womb", x: 25, y: 35, w: 55, h: 45, label: "The Womb", prompt: "What did you learn from studying life before birth?" },
   ],
   "c-anatomy-6": [
-    { id: "spine", x: 30, y: 25, w: 45, h: 50, label: "The Spine", prompt: "How does the spine bend with grace when the figure moves?" },
+    { id: "thigh", x: 20, y: 25, w: 60, h: 50, label: "Thigh Muscles", prompt: "How did you study the muscles of the leg?" },
   ],
-  "c-art-3": [
-    { id: "proportion", x: 20, y: 15, w: 65, h: 75, label: "Proportion", prompt: "Explain the Vitruvian Man and man's place in the cosmos." },
+  "c-anatomy-7": [
+    { id: "foot", x: 25, y: 30, w: 55, h: 45, label: "Foot & Calf", prompt: "What does the foot reveal about movement?" },
   ],
-  "c-art-4": [
-    { id: "hands", x: 20, y: 30, w: 65, h: 45, label: "Study of Hands", prompt: "Why did you study hands so obsessively?" },
+  "c-anatomy-8": [
+    { id: "bear", x: 25, y: 28, w: 55, h: 48, label: "Bear's Foot", prompt: "Why did you dissect a bear's foot?" },
   ],
-  "c-art-5": [
-    { id: "mirror", x: 15, y: 25, w: 70, h: 50, label: "Mirror Writing", prompt: "Why did you write backwards in your notebooks?" },
+
+  // —— Workshop ——
+  "c-eng-1": [
+    { id: "wings", x: 10, y: 15, w: 80, h: 50, label: "The Wings", prompt: "How did you study birds to design this flying machine?" },
+    { id: "pilot", x: 35, y: 45, w: 30, h: 40, label: "The Pilot", prompt: "Did you believe man could truly fly in your age?" },
   ],
-  "c-art-6": [
-    { id: "battle", x: 15, y: 30, w: 75, h: 50, label: "Battle Motion", prompt: "How do you paint horses and men interlocked in fury?" },
+  "c-eng-2": [
+    { id: "shell", x: 15, y: 25, w: 70, h: 55, label: "Armoured Shell", prompt: "How did you conceive this turtle-shaped war machine?" },
+    { id: "cannons", x: 20, y: 40, w: 60, h: 30, label: "The Cannons", prompt: "Why array cannons in every direction on one vehicle?" },
   ],
-  "p-battle-anghiari": [
-    { id: "horses", x: 15, y: 30, w: 70, h: 50, label: "The Horses", prompt: "How do you paint motion and violence in battle?" },
+  "c-eng-3": [
+    { id: "vortex", x: 30, y: 35, w: 45, h: 40, label: "The Vortex", prompt: "What did swirling water teach you about motion?" },
+    { id: "arno", x: 10, y: 60, w: 80, h: 30, label: "The Arno", prompt: "How did the Arno river shape your engineering?" },
   ],
-  "p-anatomy-eye": [
-    { id: "eye", x: 30, y: 25, w: 45, h: 40, label: "The Eye", prompt: "How does the eye relate to painting?" },
+  "c-eng-4": [
+    { id: "screw", x: 30, y: 20, w: 45, h: 55, label: "The Screw", prompt: "How does the water screw lift water against gravity?" },
   ],
-  "p-anatomy-embryo": [
-    { id: "fetus", x: 30, y: 35, w: 45, h: 45, label: "The Fetus", prompt: "Why draw the fetus curled in its chamber?" },
+  "c-eng-5": [
+    { id: "aerial", x: 25, y: 18, w: 55, h: 55, label: "Aerial Screw", prompt: "Was the aerial screw the ancestor of the helicopter?" },
   ],
-  "p-anatomy-shoulder": [
-    { id: "muscle", x: 20, y: 25, w: 60, h: 50, label: "Muscle Layers", prompt: "Why did you draw the shoulder in layers of muscle?" },
-    { id: "motion", x: 10, y: 60, w: 80, h: 30, label: "Motion", prompt: "How does the shoulder's freedom of movement inform battle scenes?" },
+  "c-eng-6": [
+    { id: "bow", x: 15, y: 25, w: 70, h: 50, label: "The Crossbow", prompt: "What was the purpose of such an enormous crossbow?" },
+  ],
+  "c-eng-7": [
+    { id: "arch", x: 20, y: 35, w: 65, h: 40, label: "The Arch", prompt: "How could a bridge span so far without supports?" },
   ],
 };
 

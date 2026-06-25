@@ -1,0 +1,260 @@
+.atelier-rooms {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 24px;
+  text-align: left;
+}
+
+.atelier-room-card {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(42, 34, 24, 0.12);
+  text-decoration: none;
+  color: inherit;
+}
+
+.atelier-room-card:hover {
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.atelier-room-thumb {
+  width: 88px;
+  height: 64px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.atelier-room-card h2 {
+  font-family: Cinzel, serif;
+  font-size: 1.1rem;
+  margin: 0 0 4px;
+}
+
+.atelier-room-card p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: rgba(42, 34, 24, 0.55);
+  font-style: italic;
+}
+
+.atelier-room {
+  min-height: 100vh;
+  background: #1a1510;
+  display: flex;
+  flex-direction: column;
+}
+
+.atelier-presence {
+  padding: 12px 16px 8px;
+  color: rgba(255, 248, 235, 0.9);
+  z-index: 5;
+}
+
+.atelier-presence-line {
+  font-family: "Crimson Pro", Georgia, serif;
+  font-style: italic;
+  font-size: 1.05rem;
+  margin: 8px 0 0;
+  color: rgba(255, 240, 220, 0.75);
+}
+
+.atelier-scroll {
+  flex: 1;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+}
+
+.atelier-folio {
+  height: calc(100vh - 140px);
+  scroll-snap-align: start;
+  padding: 8px 10px 100px;
+}
+
+.folio-parchment {
+  height: 100%;
+  overflow-y: auto;
+  background: linear-gradient(165deg, #f4ecd8, #e8dfc8);
+  padding: 16px 16px 24px 48px;
+  border-radius: 4px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.35);
+  position: relative;
+}
+
+.folio-parchment::before {
+  content: "";
+  position: absolute;
+  left: 40px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(139, 37, 0, 0.3);
+}
+
+.folio-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: rgba(139, 37, 0, 0.5);
+  margin-bottom: 6px;
+}
+
+.folio-title {
+  font-family: Cinzel, serif;
+  font-size: 1.4rem;
+  margin: 0 0 4px;
+  color: #2a2218;
+}
+
+.folio-prov {
+  font-size: 0.85rem;
+  font-style: italic;
+  color: rgba(42, 34, 24, 0.55);
+  margin: 0 0 10px;
+}
+
+.folio-body {
+  font-family: "Crimson Pro", Georgia, serif;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  margin-top: 12px;
+  color: #2a2218;
+}
+
+.folio-visitor-q {
+  text-align: right;
+  font-style: italic;
+  margin-top: 16px;
+  color: rgba(42, 34, 24, 0.65);
+}
+
+.folio-wait {
+  font-style: italic;
+  opacity: 0.5;
+}
+
+.turn-hint {
+  text-align: center;
+  font-size: 0.8rem;
+  color: rgba(139, 37, 0, 0.3);
+  margin-top: 20px;
+}
+
+.hotspot-frame {
+  position: relative;
+  margin: 10px 0;
+  border: 1px solid rgba(42, 34, 24, 0.15);
+  overflow: hidden;
+}
+
+.hotspot-image {
+  width: 100%;
+  max-height: 240px;
+  object-fit: cover;
+  display: block;
+}
+
+.hotspot-layer {
+  position: absolute;
+  inset: 0;
+}
+
+.hotspot-btn {
+  position: absolute;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+.hotspot-ring {
+  position: absolute;
+  inset: 10%;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 200, 120, 0.85);
+  box-shadow: 0 0 16px rgba(255, 180, 80, 0.55);
+  animation: hotspot-pulse 2.2s ease-in-out infinite;
+}
+
+.hotspot-label {
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.65rem;
+  white-space: nowrap;
+  background: rgba(26, 18, 14, 0.82);
+  color: #fff8eb;
+  padding: 2px 8px;
+  border-radius: 10px;
+  pointer-events: none;
+}
+
+@keyframes hotspot-pulse {
+  0%, 100% { opacity: 0.65; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+.hotspot-hint {
+  font-size: 0.75rem;
+  text-align: center;
+  color: rgba(139, 37, 0, 0.45);
+  margin: 6px 0 0;
+  font-style: italic;
+}
+
+.atelier-composer {
+  display: flex;
+  gap: 8px;
+  padding: 10px 14px 14px;
+  background: rgba(26, 18, 14, 0.94);
+  border-top: 1px solid rgba(255, 200, 120, 0.12);
+}
+
+.atelier-composer input {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff8eb;
+  font-family: "Crimson Pro", Georgia, serif;
+  font-size: 1.05rem;
+}
+
+.atelier-composer button {
+  width: 44px;
+  background: rgba(139, 90, 43, 0.9);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+
+.museum-nav {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 4px;
+}
+
+.museum-nav .nav-link {
+  font-family: Cinzel, serif;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: rgba(255, 240, 220, 0.45);
+}
+
+.page.parchment .museum-nav .nav-link {
+  color: rgba(42, 34, 24, 0.45);
+}
+
+.museum-nav .nav-link.active {
+  color: rgba(255, 220, 160, 0.95);
+}
+
+.page.parchment .museum-nav .nav-link.active {
+  color: rgba(42, 34, 24, 0.9);
+}

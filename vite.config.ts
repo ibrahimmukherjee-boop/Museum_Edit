@@ -8,6 +8,15 @@ const pagesBase =
 export default defineConfig({
   plugins: [react()],
   base: pagesBase,
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          three: ["three", "@react-three/fiber", "@react-three/drei"],
+        },
+      },
+    },
+  },
   server: {
     port: 5173,
     proxy: {

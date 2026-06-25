@@ -4,17 +4,23 @@ export interface KioskSettings {
   inactivityTimeoutMs: number;
   maxTurns: number;
   analyticsEnabled: boolean;
+  localModelUrl: string;
+  localModelName: string;
+  useLocalModel: boolean;
 }
 
 const KEY = "leonardo.settings.v1";
 
-/** CORTEX on by default. Enable Demo Mode in settings for canned offline replies. */
+/** CORTEX on by default. Local GLM polishes curated drafts when Ollama is reachable. */
 export const DEFAULT_SETTINGS: KioskSettings = {
   devMode: false,
-  typewriterSpeedMs: 35,
+  typewriterSpeedMs: 30,
   inactivityTimeoutMs: 300_000,
-  maxTurns: 10,
+  maxTurns: 12,
   analyticsEnabled: false,
+  localModelUrl: "http://127.0.0.1:11434",
+  localModelName: "glm-5.2:cloud",
+  useLocalModel: true,
 };
 
 export function loadSettings(): KioskSettings {

@@ -14,8 +14,12 @@ export function stripMuseumNavMarkers(text: string): string {
 
 export function userRequestsAtelierTour(question: string): boolean {
   const q = question.toLowerCase();
+  // Anatomy questions mention "dissection" — do not treat as navigation.
+  if (/\b(what|how|why|when|did|does|teach|learn|study)\b/.test(q) && /\b(dissect|dissection|anatom|cadaver|muscle|bone)\b/.test(q)) {
+    return false;
+  }
   return (
-    /\b(atelier|workshop|studio|dissection|tour|walk me|show me your|three room|work beside|enter the)\b/.test(q) ||
+    /\b(atelier|workshop|studio|dissection table|tour|walk me|show me your|three room|work beside|enter the)\b/.test(q) ||
     /\b(lead me|take me|bring me)\b/.test(q)
   );
 }

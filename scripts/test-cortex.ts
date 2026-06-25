@@ -3,6 +3,14 @@ import type { CortexInput } from "../src/cortex/types";
 
 const cases: { name: string; input: CortexInput }[] = [
   {
+    name: "Parlor — flying machines",
+    input: {
+      question: "What do you think of our modern flying machines?",
+      history: [],
+      memory: { sessionId: "test", visitorName: "Guest", workingMemory: [] },
+    },
+  },
+  {
     name: "Parlor — general",
     input: {
       question: "What is saper vedere?",
@@ -47,8 +55,9 @@ for (const c of cases) {
     Boolean(out.reply?.length && out.reply.length > 40) &&
     Boolean(out.trace.zone) &&
     out.trace.verification.reasoning > 0 &&
-    out.provider === "cortex";
-  console.log(ok ? "✓" : "✗", c.name);
+    (out.provider === "cortex" || out.provider === "cortex+curated") &&
+    (c.name?.includes("flying") ? out.reply.includes("astonish") : true);
+  console.log(ok ? "✓" : "✗", c.name ?? "unnamed");
   console.log("  zone:", out.trace.zone);
   console.log("  scores:", out.trace.verification);
   console.log("  reply:", `${out.reply.slice(0, 140)}…\n`);

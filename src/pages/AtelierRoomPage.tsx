@@ -1,12 +1,18 @@
-import { FormEvent, useCallback, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { GlassPanel } from "../components/GlassPanel";
+import { AtelierChatPanel, type ChatTurn } from "../components/AtelierChatPanel";
+import { FolioGlassCard } from "../components/FolioGlassCard";
 import { LiveFolioStage } from "../components/LiveFolioStage";
 import { MuseumNav } from "../components/MuseumNav";
-import { TypewriterText } from "../components/TypewriterText";
+import { AmbientSoundscape } from "../components/AmbientSoundscape";
 import type { LeonardoZone } from "../cortex/types";
 import { askLeonardo } from "../lib/leonardoChat";
+import { demoLeonardoReply } from "../lib/demoResponses";
+import { stripMuseumNavMarkers } from "../lib/museumNavigation";
 import { foliosForDomain, type WebFolio } from "../lib/folios";
+
+const FOLIO_GREETING =
+  "You stand at my shoulder — ask what you see before us. I answer from the folio, the panel, the page.";
 
 export default function AtelierRoomPage() {
   const { domain } = useParams<{ domain: string }>();
@@ -15,141 +21,217 @@ export default function AtelierRoomPage() {
   const [pageIndex, setPageIndex] = useState(0);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [dialogues, setDialogues] = useState<Record<string, { q: string; a: string; streaming: boolean }>>({});
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const [typingId, setTypingId] = useState<string | null>(null);
+  const [chatExpanded, setChatExpanded] = useState(true);
+  const [muted, setMuted] = useState(true);
+  const [startedAudio, setStartedAudio] = useState(false);
+  const [threads, setThreads] = useState<Record<string, ChatTurn[]>>({});
+  const [lastProvider, setLastProvider] = useState("cortex");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const pendingHotspotLabel = useRef<string | undefined>(undefined);
 
   const folio = folios[pageIndex] ?? null;
-  const dlg = folio ? dialogues[folio.id] : undefined;
+  const turns = folio ? (threads[folio.id] ?? []) : [];
+  const soundscape = folio?.soundscape ?? (d === "art" ? "studio" : d === "anatomy" ? "dissection" : "workshop");
 
-  const onScroll = () => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const h = el.clientHeight;
-    const idx = Math.round(el.scrollTop / h);
-    setPageIndex(Math.max(0, Math.min(folios.length - 1, idx)));
+  useEffect(() => {
+    setPageIndex(0);
+  }, [d]);
+
+  const ensureGreeting = useCallback((folioId: string) => {
+    setThreads((p) => {
+      if (p[folioId]?.length) return p;
+      return { ...p, [folioId]: [{ id: `g-${folioId}`, role: "assistant", content: FOLIO_GREETING }] };
+    });
+  }, []);
+
+  useEffect(() => {
+    if (folio) ensureGreeting(folio.id);
+  }, [folio, ensureGreeting]);
+
+  const goTo = (idx: number) => {
+    const next = Math.max(0, Math.min(folios.length - 1, idx));
+    setPageIndex(next);
+    const f = folios[next];
+    if (f) ensureGreeting(f.id);
   };
 
   const send = useCallback(
-    async (text: string, label?: string) => {
-      if (!folio || !text.trim() || loading) return;
-      const id = folio.id;
-      setDialogues((p) => ({ ...p, [id]: { q: text, a: "", streaming: true } }));
+    async (text: string, folioTarget: WebFolio) => {
+      const t = text.trim();
+      if (!t || loading) return;
+
+      setChatExpanded(true);
+      const userId = `u-${Date.now()}`;
+      const current = threads[folioTarget.id] ?? [];
+      const nextTurns: ChatTurn[] = [...current, { id: userId, role: "user", content: t }];
+      setThreads((p) => ({ ...p, [folioTarget.id]: nextTurns }));
       setInput("");
       setLoading(true);
-      const history =
-        dlg?.q && dlg?.a
-          ? [
-              { role: "user" as const, content: dlg.q },
-              { role: "assistant" as const, content: dlg.a },
-            ]
-          : [];
-      const { reply } = await askLeonardo({
-        question: text,
-        history,
-        folioContext: { title: folio.title, body: folio.body, domain: folio.domain },
-        hotspotLabel: label,
-        useLlmPolish: true,
-      });
-      setDialogues((p) => ({ ...p, [id]: { q: text, a: reply, streaming: false } }));
+
+      const history = nextTurns.map((m) => ({ role: m.role, content: m.content }));
+      const hotspotLabel = pendingHotspotLabel.current;
+      pendingHotspotLabel.current = undefined;
+
+      let reply = "";
+      try {
+        const result = await askLeonardo({
+          question: t,
+          history,
+          folioContext: {
+            title: folioTarget.title,
+            body: folioTarget.body,
+            domain: folioTarget.domain,
+          },
+          hotspotLabel,
+          instant: true,
+          useLlmPolish: false,
+        });
+        reply = stripMuseumNavMarkers(result.reply?.trim() || demoLeonardoReply(t));
+        setLastProvider(result.provider);
+      } catch {
+        reply = stripMuseumNavMarkers(demoLeonardoReply(t));
+      }
+
+      const aid = `a-${Date.now()}`;
+      setThreads((p) => ({
+        ...p,
+        [folioTarget.id]: [...(p[folioTarget.id] ?? nextTurns), { id: aid, role: "assistant", content: reply }],
+      }));
+      setTypingId(aid);
       setLoading(false);
+      inputRef.current?.focus();
     },
-    [folio, loading, dlg],
+    [loading, threads],
+  );
+
+  const onHotspot = useCallback(
+    (prompt: string, label: string, folioTarget: WebFolio) => {
+      pendingHotspotLabel.current = label;
+      void send(prompt, folioTarget);
+    },
+    [send],
   );
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
-    void send(input);
+    if (folio) void send(input, folio);
   };
 
   if (!folios.length) {
     return (
-      <div className="journey-ambient min-h-screen p-8 text-amber-50">
+      <div className="atelier-luminous min-h-screen p-8 text-[#2a2218]">
         <p>Workshop not found.</p>
-        <Link to="/atelier" className="text-amber-300 underline">
+        <Link to="/atelier" className="text-amber-800 underline">
           ← Atelier
         </Link>
       </div>
     );
   }
 
+  if (!folio) return null;
+
   return (
-    <div className="journey-ambient flex min-h-screen flex-col">
-      <header className="relative z-40 px-4 pt-3 pb-2">
-        <MuseumNav theme="dark" />
-        <p className="mt-2 font-serif text-base italic text-amber-100/80">
-          {folio?.presenceLine ?? "Leonardo works beside you."}
-        </p>
+    <div className="atelier-luminous flex h-screen flex-col overflow-hidden">
+      {startedAudio ? <AmbientSoundscape soundscape={soundscape} muted={muted} /> : null}
+
+      <header className="relative z-40 shrink-0 px-4 pt-3 pb-2">
+        <MuseumNav theme="light" />
+        <div className="mt-2 flex items-center justify-between gap-3">
+          <p className="font-serif text-sm italic text-[#2a2218]/75">
+            {folio.presenceLine ?? "Leonardo works beside you."}
+          </p>
+          <button
+            type="button"
+            onClick={() => (startedAudio ? setMuted((m) => !m) : (setStartedAudio(true), setMuted(false)))}
+            className="shrink-0 rounded-full border border-amber-900/12 bg-white/60 px-3 py-1 text-[0.65rem] uppercase tracking-wider text-[#2a2218]/80"
+          >
+            {startedAudio ? (muted ? "🔇" : "🔊") : "🔇"}
+          </button>
+        </div>
       </header>
 
-      <div className="relative z-10 flex-1 overflow-y-auto scroll-smooth snap-y snap-mandatory" ref={scrollRef} onScroll={onScroll}>
-        {folios.map((f: WebFolio, i) => {
-          const d0 = dialogues[f.id];
-          return (
-            <section key={f.id} className="relative flex h-[calc(100vh-8.5rem)] snap-start flex-col overflow-visible px-3 pb-28 pt-2">
-              <GlassPanel variant="cream" className="relative z-10 mx-auto flex h-full max-w-lg flex-col overflow-visible p-5 pl-12">
-                <div className="absolute bottom-0 left-10 top-0 w-0.5 bg-red-900/25" aria-hidden />
-                <div className="mb-2 flex justify-between text-xs text-red-900/50">
-                  <span>
-                    Fol. {i + 1}r · {i + 1} of {folios.length}
-                  </span>
-                  {f.year ? <span>{f.year}</span> : null}
-                </div>
-                <h2 className="font-[Cinzel] text-xl text-[#2a2218]">{f.title}</h2>
-                {f.provenance ? <p className="mt-1 text-sm italic text-[#2a2218]/60">{f.provenance}</p> : null}
+      <div className="relative z-10 min-h-0 flex-1 overflow-y-auto px-3 py-2">
+        <FolioGlassCard key={folio.id} className="atelier-folio-enter mx-auto w-full max-w-lg">
+          <div className="mb-1 flex justify-between text-xs text-red-900/45">
+            <span>
+              Fol. {pageIndex + 1}r · {pageIndex + 1} of {folios.length}
+            </span>
+            {folio.year ? <span>{folio.year}</span> : null}
+          </div>
+          <h2 className="font-[Cinzel] text-lg text-[#2a2218]">{folio.title}</h2>
+          {folio.provenance ? <p className="mt-0.5 text-xs italic text-[#2a2218]/55">{folio.provenance}</p> : null}
 
-                <LiveFolioStage
-                  folioId={f.id}
-                  imageKey={f.imageKey}
-                  title={f.title}
-                  onHotspot={(prompt, label) => void send(prompt, label)}
-                />
+          <LiveFolioStage
+            folioId={folio.id}
+            imageKey={folio.imageKey}
+            title={folio.title}
+            onHotspot={(prompt, label) => onHotspot(prompt, label, folio)}
+          />
 
-                <div className="relative z-10 mt-2 flex-1 overflow-y-auto">
-                <p className="font-serif text-base leading-relaxed text-[#2a2218]">{f.body}</p>
-                {f.attribution ? (
-                  <p className="mt-2 text-[0.65rem] text-[#2a2218]/45">{f.attribution}</p>
-                ) : null}
-                {d0?.q ? <p className="mt-4 text-right text-sm italic text-[#2a2218]/70">{d0.q}</p> : null}
-                {d0?.streaming && !d0.a ? <p className="italic text-[#2a2218]/45">✒ …</p> : null}
-                {d0?.a ? (
-                  <div className="mt-2 text-[#2a2218]">
-                    <TypewriterText text={d0.a} isStreaming={d0.streaming} />
-                  </div>
-                ) : null}
-                {!d0 && f.prompts[0] ? (
-                  <button
-                    type="button"
-                    className="mt-4 w-full rounded border border-[#2a2218]/12 bg-white/40 px-3 py-2 text-left text-sm text-[#2a2218] hover:bg-white/60"
-                    onClick={() => void send(f.prompts[0])}
-                  >
-                    {f.prompts[0]}
-                  </button>
-                ) : null}
-                <p className="mt-6 text-center text-xs text-red-900/30">↑ turn the page ↑</p>
-                </div>
-              </GlassPanel>
-            </section>
-          );
-        })}
+          <p className="mt-1 font-serif text-sm leading-relaxed text-[#2a2218]/75">{folio.body}</p>
+
+          <div className="mt-4 flex items-center justify-between gap-2">
+            <button
+              type="button"
+              disabled={pageIndex === 0}
+              onClick={() => goTo(pageIndex - 1)}
+              className="rounded-xl border border-amber-900/12 bg-white/70 px-3 py-2 text-sm text-[#2a2218] disabled:opacity-30"
+            >
+              ← Previous
+            </button>
+            <span className="text-xs text-[#2a2218]/40">
+              {pageIndex + 1} / {folios.length}
+            </span>
+            <button
+              type="button"
+              disabled={pageIndex >= folios.length - 1}
+              onClick={() => goTo(pageIndex + 1)}
+              className="rounded-xl border border-amber-900/12 bg-white/70 px-3 py-2 text-sm text-[#2a2218] disabled:opacity-30"
+            >
+              Next →
+            </button>
+          </div>
+        </FolioGlassCard>
       </div>
 
+      <AtelierChatPanel
+        folioTitle={folio.title}
+        turns={turns}
+        loading={loading}
+        typingId={typingId}
+        expanded={chatExpanded}
+        provider={lastProvider}
+        onToggleExpand={() => setChatExpanded((e) => !e)}
+        onTypingComplete={(id) => {
+          if (typingId === id) setTypingId(null);
+        }}
+        onStarter={(q) => void send(q, folio)}
+        starters={[
+          `What am I seeing in ${folio.title}?`,
+          "How did you study this?",
+          "What should I notice first?",
+        ]}
+      />
+
       <form
-        className="relative z-50 flex gap-2 border-t border-white/10 bg-stone-950/80 px-4 py-3 backdrop-blur-xl"
+        className="atelier-composer relative z-[70] flex shrink-0 gap-2 border-t border-amber-900/10 bg-white/88 px-3 py-2.5 backdrop-blur-2xl"
         onSubmit={onSubmit}
       >
         <input
+          ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Whisper to Leonardo…"
+          placeholder="Message Leonardo…"
           disabled={loading}
-          className="flex-1 rounded border border-white/10 bg-white/8 px-3 py-3 font-serif text-base text-amber-50 placeholder:text-amber-200/40 focus:outline-none focus:ring-1 focus:ring-amber-400/40"
+          className="flex-1 rounded-xl border border-amber-900/12 bg-white/95 px-3 py-2.5 font-serif text-base text-[#2a2218] placeholder:text-[#2a2218]/35 focus:outline-none focus:ring-1 focus:ring-amber-500/35"
         />
         <button
           type="submit"
           disabled={!input.trim() || loading}
-          className="w-12 rounded bg-amber-700/90 text-amber-50 disabled:opacity-35"
+          className="rounded-xl bg-amber-700/90 px-4 py-2.5 text-amber-50 transition hover:bg-amber-600/90 disabled:opacity-35"
         >
-          ➤
+          {loading ? "…" : "Send"}
         </button>
       </form>
     </div>

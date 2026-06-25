@@ -23,16 +23,16 @@ export default function LoginPage() {
   return (
     <div className="journey-ambient relative flex min-h-screen items-center justify-center overflow-hidden px-4">
       <div
-        className="pointer-events-none absolute top-[12%] left-1/2 h-72 w-72 -translate-x-1/2 rounded-full opacity-55 blur-[2px]"
+        className="pointer-events-none absolute top-[12%] left-1/2 h-72 w-72 -translate-x-1/2 rounded-full opacity-60 blur-[2px]"
         style={{
           background:
-            "radial-gradient(circle at 35% 35%, rgba(255,220,180,0.9), rgba(180,140,255,0.35) 45%, rgba(80,60,120,0.1) 70%)",
+            "radial-gradient(circle at 35% 35%, rgba(255,220,180,0.95), rgba(180,140,255,0.4) 45%, rgba(80,60,120,0.12) 70%)",
         }}
         aria-hidden
       />
       <div
-        className="pointer-events-none absolute top-[8%] left-1/2 h-[400px] w-[400px] -translate-x-1/2 animate-pulse rounded-full opacity-60"
-        style={{ background: "radial-gradient(circle, rgba(200,170,255,0.25), transparent 65%)" }}
+        className="pointer-events-none absolute top-[8%] left-1/2 h-[400px] w-[400px] -translate-x-1/2 animate-pulse rounded-full opacity-70"
+        style={{ background: "radial-gradient(circle, rgba(200,170,255,0.3), transparent 65%)" }}
         aria-hidden
       />
 
@@ -43,7 +43,7 @@ export default function LoginPage() {
           Museum access required. Sign in to continue.
         </p>
         <input
-          className="mt-5 w-full rounded border border-[#2a2218]/20 bg-white/70 px-3 py-3 text-base text-[#2a2218] placeholder:text-[#2a2218]/40"
+          className="mt-5 w-full rounded-xl border border-[#2a2218]/20 bg-white/70 px-3 py-3 text-base text-[#2a2218] placeholder:text-[#2a2218]/40 focus:outline-none focus:ring-1 focus:ring-amber-400/40"
           placeholder="Username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
@@ -51,7 +51,7 @@ export default function LoginPage() {
         />
         <input
           type="password"
-          className="mt-3 w-full rounded border border-[#2a2218]/20 bg-white/70 px-3 py-3 text-base text-[#2a2218] placeholder:text-[#2a2218]/40"
+          className="mt-3 w-full rounded-xl border border-[#2a2218]/20 bg-white/70 px-3 py-3 text-base text-[#2a2218] placeholder:text-[#2a2218]/40 focus:outline-none focus:ring-1 focus:ring-amber-400/40"
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -59,7 +59,7 @@ export default function LoginPage() {
           autoComplete="current-password"
         />
         <input
-          className="mt-3 w-full rounded border border-[#2a2218]/20 bg-white/70 px-3 py-3 text-base text-[#2a2218] placeholder:text-[#2a2218]/40"
+          className="mt-3 w-full rounded-xl border border-[#2a2218]/20 bg-white/70 px-3 py-3 text-base text-[#2a2218] placeholder:text-[#2a2218]/40 focus:outline-none focus:ring-1 focus:ring-amber-400/40"
           placeholder="Your name (optional)"
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -67,7 +67,7 @@ export default function LoginPage() {
         {error ? <p className="mt-3 text-sm text-red-800">{error}</p> : null}
         <button
           type="button"
-          className="mt-4 w-full rounded bg-[#2a2218] px-4 py-3.5 font-[Cinzel] text-sm tracking-wide text-amber-50 hover:bg-stone-900"
+          className="mt-4 w-full rounded-xl bg-[#2a2218] px-4 py-3.5 font-[Cinzel] text-sm tracking-wide text-amber-50 shadow-[0_0_24px_rgba(0,0,0,0.35)] transition hover:bg-stone-900"
           onClick={enter}
         >
           Begin
