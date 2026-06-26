@@ -1,0 +1,11 @@
+# App-only stack for Free Tier EC2 (no Ollama — CORTEX + SPA + art + 3D).
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      PORT: "8080"
+      USE_OLLAMA: "0"
+      OLLAMA_PULL_ON_START: "0"
+    ports:
+      - "8080:8080"

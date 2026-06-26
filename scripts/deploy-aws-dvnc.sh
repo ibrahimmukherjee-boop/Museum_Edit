@@ -12,6 +12,7 @@ AWS_REGION="${AWS_REGION:-us-east-1}"
 INSTANCE_TYPE="${INSTANCE_TYPE:-t3.xlarge}"
 KEY_NAME="${AWS_KEY_NAME:-leonardo-museum-dvnc}"
 VOLUME_GB="${VOLUME_GB:-50}"
+COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.yml}"
 
 echo "=============================================="
 echo " Leonardo Museum — AWS full stack (DVNC.AI)"
@@ -70,6 +71,9 @@ AMI="$(aws ec2 describe-images --region "$AWS_REGION" --owners 099720109477 \
 echo "AMI: $AMI"
 
 USER_DATA_FILE="$ROOT/deploy/aws/ec2-user-data.sh"
+if [ "$COMPOSE_FILE" = "docker-compose.free.yml" ]; then
+  USER_DATA_FILE="$ROOT/deploy/aws/ec2-user-data-free.sh"
+fi
 
 echo ""
 echo ">>> EC2 instance (leonardo-museum-dvnc)"
@@ -133,7 +137,7 @@ if [ ! -d .git ]; then
   git clone https://github.com/${REPO_OWNER}/${REPO_NAME}.git .
 fi
 git pull origin main || true
-docker compose up -d --build
+docker compose -f ${COMPOSE_FILE} up -d --build
 REMOTE
 fi
 
