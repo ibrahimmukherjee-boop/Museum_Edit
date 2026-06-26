@@ -35,7 +35,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ github.repository }}/leonardo-museum:${{ github.sha }}
 
       - name: Deploy to server via SSH
-        if: ${{ secrets.DEPLOY_HOST != '' }}
+        if: vars.AWS_DEPLOY == 'true'
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.DEPLOY_HOST }}

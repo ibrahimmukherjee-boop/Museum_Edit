@@ -4,7 +4,8 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm ci
 COPY . .
-RUN npm run build
+# Art is committed in public/art — skip local-only sync on server builds
+RUN npx vite build
 
 # Production API + static
 FROM node:22-bookworm-slim

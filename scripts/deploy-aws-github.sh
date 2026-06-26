@@ -6,7 +6,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 REPO_OWNER="${GITHUB_OWNER:-ibrahimmukherjee-boop}"
-REPO_NAME="${GITHUB_REPO:-leonardo-museum-web}"
+REPO_NAME="${GITHUB_REPO:-Museum_Edit}"
 AWS_REGION="${AWS_REGION:-eu-west-1}"
 INSTANCE_TYPE="${INSTANCE_TYPE:-t3.xlarge}"
 KEY_NAME="${AWS_KEY_NAME:-leonardo-museum-key}"

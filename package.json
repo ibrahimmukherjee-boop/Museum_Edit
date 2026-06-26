@@ -22,7 +22,7 @@
     "docker:up": "docker compose up -d --build",
     "docker:prod": "docker compose -f docker-compose.prod.yml --env-file .env up -d --build",
     "docker:logs": "docker compose logs -f app ollama",
-    "deploy:aws": "bash scripts/deploy-aws-github.sh",
+    "deploy:aws": "bash scripts/deploy-aws-dvnc.sh",
     "zip:vercel": "bash scripts/make-vercel-zip.sh",
     "netlify": "bash scripts/netlify-drop.sh",
     "push:github": "bash scripts/push-github.sh"
