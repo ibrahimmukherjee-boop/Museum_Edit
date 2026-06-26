@@ -108,12 +108,13 @@ function IsolatedSubject({ visual, folioId }: SubjectProps) {
       <mesh ref={meshRef} geometry={meshData.geometry} position={[0, 0, 0.34]} castShadow receiveShadow>
         <meshStandardMaterial
           map={meshData.texture}
-          roughness={0.42}
-          metalness={0.02}
+          roughness={0.38}
+          metalness={0.015}
           side={THREE.DoubleSide}
           transparent
-          alphaTest={0.06}
+          alphaTest={0.05}
           depthWrite
+          normalScale={new THREE.Vector2(0.65, 0.65)}
         />
       </mesh>
     </group>

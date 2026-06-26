@@ -12,9 +12,39 @@ export interface IsolatedMeshOpts {
 }
 
 function isPaper(r: number, g: number, b: number, stage?: StageMode): boolean {
-  if (stage === "dissection") return r > 0.92 && g > 0.86 && b > 0.76;
-  if (stage === "workshop") return r > 0.88 && g > 0.84 && b > 0.72;
-  return r > 0.9 && g > 0.87 && b > 0.8;
+  const lum = r * 0.299 + g * 0.587 + b * 0.114;
+  const sat = Math.max(r, g, b) - Math.min(r, g, b);
+  if (sat > 0.14 && lum < 0.92) return false;
+  if (stage === "dissection") return lum > 0.9 && r > 0.86 && b > 0.74;
+  if (stage === "workshop") return lum > 0.86 && r > 0.84 && b > 0.7;
+  return lum > 0.88 && r > 0.86 && b > 0.78;
+}
+
+function luminanceAt(data: Uint8ClampedArray, size: number, px: number, py: number): number {
+  const i = (py * size + px) * 4;
+  const r = data[i] / 255;
+  const g = data[i + 1] / 255;
+  const b = data[i + 2] / 255;
+  return r * 0.299 + g * 0.587 + b * 0.114;
+}
+
+/** Edge-aware relief — ink lines and anatomical contours read as depth. */
+function edgeRelief(lumGrid: Float32Array, size: number, px: number, py: number): number {
+  const gx =
+    -lumGrid[(py - 1) * size + (px - 1)] +
+    lumGrid[(py - 1) * size + (px + 1)] +
+    -2 * lumGrid[py * size + (px - 1)] +
+    2 * lumGrid[py * size + (px + 1)] +
+    -lumGrid[(py + 1) * size + (px - 1)] +
+    lumGrid[(py + 1) * size + (px + 1)];
+  const gy =
+    -lumGrid[(py - 1) * size + (px - 1)] -
+    2 * lumGrid[(py - 1) * size + px] -
+    lumGrid[(py - 1) * size + (px + 1)] +
+    lumGrid[(py + 1) * size + (px - 1)] +
+    2 * lumGrid[(py + 1) * size + px] +
+    lumGrid[(py + 1) * size + (px + 1)];
+  return Math.min(1, Math.hypot(gx, gy) * 2.8);
 }
 
 /** Feathered ellipse alpha — soft matte edge like Google Arts cutout. */
@@ -44,7 +74,7 @@ export async function buildIsolatedSubjectMesh(
   const cw = Math.max(1, x1 - x0);
   const ch = Math.max(1, y1 - y0);
 
-  const texSize = 256;
+  const texSize = 384;
   const texCanvas = document.createElement("canvas");
   texCanvas.width = texSize;
   texCanvas.height = texSize;
@@ -69,6 +99,13 @@ export async function buildIsolatedSubjectMesh(
   dctx.drawImage(texCanvas, 0, 0);
 
   const dispData = dctx.getImageData(0, 0, texSize, texSize).data;
+  const lumGrid = new Float32Array(texSize * texSize);
+  for (let py = 0; py < texSize; py++) {
+    for (let px = 0; px < texSize; px++) {
+      lumGrid[py * texSize + px] = luminanceAt(dispData, texSize, px, py);
+    }
+  }
+
   const origAlpha = new Uint8Array(texSize * texSize);
   for (let py = 0; py < texSize; py++) {
     for (let px = 0; px < texSize; px++) {
@@ -87,26 +124,52 @@ export async function buildIsolatedSubjectMesh(
 
   const geometry = new THREE.PlaneGeometry(planeW, planeH, segments, segments);
   const pos = geometry.attributes.position as THREE.BufferAttribute;
+  const gridW = segments + 1;
+  const depthGrid = new Float32Array(gridW * gridW);
 
   for (let i = 0; i < pos.count; i++) {
-    const col = i % (segments + 1);
-    const row = Math.floor(i / (segments + 1));
+    const col = i % gridW;
+    const row = Math.floor(i / gridW);
     const u = col / segments;
     const v = row / segments;
     const px = Math.min(texSize - 1, Math.floor(u * texSize));
     const py = Math.min(texSize - 1, Math.floor((1 - v) * texSize));
     const pidx = py * texSize + px;
-    const idx = pidx * 4;
     if (origAlpha[pidx] < 8) {
-      pos.setZ(i, -0.08);
+      depthGrid[row * gridW + col] = -0.08;
       continue;
     }
-    const r = dispData[idx] / 255;
-    const g = dispData[idx + 1] / 255;
-    const b = dispData[idx + 2] / 255;
-    const lum = r * 0.299 + g * 0.587 + b * 0.114;
-    const relief = Math.pow(Math.max(0, lum - 0.12), 0.82) * 1.35;
-    pos.setZ(i, relief * depthScale);
+    const lum = lumGrid[pidx];
+    const edge = edgeRelief(lumGrid, texSize, px, py);
+    const relief = Math.pow(Math.max(0, lum - 0.08), 0.74) * 1.28 + edge * 0.62;
+    depthGrid[row * gridW + col] = relief * depthScale;
+  }
+
+  // Bilateral-style smooth — keeps ink ridges but removes mesh stair-steps
+  const smoothed = new Float32Array(depthGrid);
+  for (let row = 1; row < segments; row++) {
+    for (let col = 1; col < segments; col++) {
+      const i = row * gridW + col;
+      if (depthGrid[i] < 0) continue;
+      let sum = 0;
+      let n = 0;
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const v = depthGrid[(row + dy) * gridW + (col + dx)];
+          if (v >= 0) {
+            sum += v;
+            n++;
+          }
+        }
+      }
+      smoothed[i] = n ? sum / n : depthGrid[i];
+    }
+  }
+
+  for (let i = 0; i < pos.count; i++) {
+    const col = i % gridW;
+    const row = Math.floor(i / gridW);
+    pos.setZ(i, smoothed[row * gridW + col]);
   }
   geometry.computeVertexNormals();
 
@@ -126,8 +189,8 @@ export async function loadNotebookTexture(
   stage: StageMode = "studio",
 ): Promise<THREE.CanvasTexture> {
   const img = await loadImage(imageUrl);
-  const w = 512;
-  const h = Math.round(512 * (img.naturalHeight / img.naturalWidth));
+  const w = 768;
+  const h = Math.round(w * (img.naturalHeight / img.naturalWidth));
   const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;

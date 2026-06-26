@@ -1,5 +1,5 @@
 #!/bin/bash
-# EC2 first-boot: Docker + clone Museum_Edit + Ollama stack (CORTEX + SLM).
+# EC2 first-boot: Docker + Museum_Edit + Ollama GLM 5.2 + full CORTEX stack.
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
@@ -21,7 +21,7 @@ if [ ! -d .git ]; then
   git clone https://github.com/ibrahimmukherjee-boop/Museum_Edit.git .
 fi
 git pull origin main || true
-docker compose up -d --build
+docker compose -f docker-compose.yml up -d --build
 UBUNTU
 
-echo "leonardo-museum boot complete" > /var/log/leonardo-museum-boot.log
+echo "leonardo-museum full stack boot complete" > /var/log/leonardo-museum-boot.log

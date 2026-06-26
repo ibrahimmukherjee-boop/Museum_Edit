@@ -1,4 +1,5 @@
 import { corpus } from "../data/museumCorpus";
+import { TRAINING_CHUNKS } from "../data/trainingCorpus";
 import { BM25 } from "./bm25";
 import type { CortexFact } from "./types";
 
@@ -26,7 +27,8 @@ function ensureIndex(): BM25 {
 
 export function retrieveKnowledge(query: string, domain?: string, topK = 4) {
   const hits = ensureIndex().search(query, topK * 2);
-  return hits
+  const training = searchTraining(query, domain, topK);
+  const museum = hits
     .filter((h) => !domain || h.meta.domain === domain)
     .slice(0, topK)
     .map((h) => ({
@@ -35,6 +37,21 @@ export function retrieveKnowledge(query: string, domain?: string, topK = 4) {
       score: h.score,
       kind: h.meta.kind,
     }));
+  return [...training, ...museum].slice(0, topK + 2);
+}
+
+function searchTraining(query: string, domain?: string, topK = 3) {
+  const q = query.toLowerCase().split(/\W+/).filter(Boolean);
+  const scored = TRAINING_CHUNKS.map((c) => {
+    if (domain && c.domain !== "general" && c.domain !== domain) return null;
+    const words = c.text.toLowerCase().split(/\W+/);
+    let score = 0;
+    for (const w of q) if (words.includes(w)) score += 1;
+    return score > 0
+      ? { title: c.source, content: c.text, score, kind: "training" as const }
+      : null;
+  }).filter(Boolean) as { title: string; content: string; score: number; kind: string }[];
+  return scored.sort((a, b) => b.score - a.score).slice(0, topK);
 }
 
 export function extractFacts(snippets: { content: string; title: string }[]): CortexFact[] {

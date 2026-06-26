@@ -9,7 +9,7 @@ cd "$ROOT"
 REPO_OWNER="${GITHUB_OWNER:-ibrahimmukherjee-boop}"
 REPO_NAME="${GITHUB_REPO:-Museum_Edit}"
 AWS_REGION="${AWS_REGION:-us-east-1}"
-INSTANCE_TYPE="${INSTANCE_TYPE:-t3.xlarge}"
+INSTANCE_TYPE="${INSTANCE_TYPE:-t3.large}"
 KEY_NAME="${AWS_KEY_NAME:-leonardo-museum-dvnc}"
 VOLUME_GB="${VOLUME_GB:-50}"
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.yml}"
@@ -95,11 +95,22 @@ if [ -z "$INSTANCE_ID" ] || [ "$INSTANCE_ID" = "None" ]; then
   aws ec2 wait instance-running --instance-ids "$INSTANCE_ID" --region "$AWS_REGION"
 else
   echo "Using existing: $INSTANCE_ID"
+  CUR_TYPE="$(aws ec2 describe-instances --instance-ids "$INSTANCE_ID" --region "$AWS_REGION" \
+    --query 'Reservations[0].Instances[0].InstanceType' --output text)"
+  if [ "$CUR_TYPE" != "$INSTANCE_TYPE" ]; then
+    echo "Resizing $CUR_TYPE → $INSTANCE_TYPE"
+    aws ec2 stop-instances --instance-ids "$INSTANCE_ID" --region "$AWS_REGION" >/dev/null
+    aws ec2 wait instance-stopped --instance-ids "$INSTANCE_ID" --region "$AWS_REGION"
+    aws ec2 modify-instance-attribute --instance-id "$INSTANCE_ID" --instance-type "$INSTANCE_TYPE" --region "$AWS_REGION"
+    aws ec2 start-instances --instance-ids "$INSTANCE_ID" --region "$AWS_REGION" >/dev/null
+    aws ec2 wait instance-running --instance-ids "$INSTANCE_ID" --region "$AWS_REGION"
+  else
   STATE="$(aws ec2 describe-instances --instance-ids "$INSTANCE_ID" --region "$AWS_REGION" \
     --query 'Reservations[0].Instances[0].State.Name' --output text)"
   if [ "$STATE" = "stopped" ]; then
     aws ec2 start-instances --instance-ids "$INSTANCE_ID" --region "$AWS_REGION" >/dev/null
     aws ec2 wait instance-running --instance-ids "$INSTANCE_ID" --region "$AWS_REGION"
+  fi
   fi
 fi
 

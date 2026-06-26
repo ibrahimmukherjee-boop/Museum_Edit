@@ -14,6 +14,7 @@ const assetsRoot =
 
 const leonardoImages = join(assetsRoot, "leonardo_images");
 const hiRes = join(assetsRoot, "High_Res_Images");
+const worksArchive = join(assetsRoot, "leonardo_da_vinci_works", "leonardo_da_vinci");
 
 /** Primary folio map — leonardo_images (full set, includes 6.6MB Mona Lisa). */
 const MAP = [
@@ -75,9 +76,13 @@ let n = 0;
 
 for (const [from, to] of MAP) {
   const src = join(leonardoImages, from);
+  const worksSrc = join(worksArchive, from);
   if (copyIfValid(src, join(out, to))) {
     n++;
     console.log("✓", to);
+  } else if (copyIfValid(worksSrc, join(out, to))) {
+    n++;
+    console.log("✓ works", to);
   } else {
     console.warn("skip (missing):", from);
   }

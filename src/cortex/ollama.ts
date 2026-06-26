@@ -6,7 +6,15 @@ export interface OllamaPolishOptions {
 }
 
 const DEFAULT_BASE = "http://127.0.0.1:11434";
-const DEFAULT_MODEL = "qwen2.5:3b";
+const DEFAULT_MODEL = process.env.OLLAMA_MODEL ?? "glm-5.2:cloud";
+
+const MODEL_CANDIDATES = [
+  "glm-5.2:cloud",
+  "glm-5.2",
+  "glm4:9b",
+  "qwen2.5:7b-instruct-q4_K_M",
+  "qwen2.5:3b",
+];
 
 export async function polishWithOllama(
   draft: string,
@@ -63,24 +71,36 @@ export async function ollamaReady(baseUrl?: string): Promise<boolean> {
 export async function ensureOllamaModel(
   model?: string,
   baseUrl?: string,
-): Promise<void> {
+): Promise<string> {
   const base = (baseUrl ?? process.env.OLLAMA_BASE_URL ?? DEFAULT_BASE).replace(/\/$/, "");
-  const name = model ?? process.env.OLLAMA_MODEL ?? DEFAULT_MODEL;
+  const preferred = model ?? process.env.OLLAMA_MODEL ?? DEFAULT_MODEL;
 
   const tags = await fetch(`${base}/api/tags`);
   if (tags.ok) {
     const data = (await tags.json()) as { models?: { name: string }[] };
-    const have = data.models?.some((m) => m.name === name || m.name.startsWith(`${name}:`));
-    if (have) return;
+    const installed = data.models?.map((m) => m.name) ?? [];
+    for (const c of [preferred, ...MODEL_CANDIDATES]) {
+      const hit = installed.find((m) => m === c || m.startsWith(`${c.split(":")[0]}:`));
+      if (hit) return hit;
+    }
   }
 
-  console.log(`[ollama] pulling model ${name}…`);
-  const pull = await fetch(`${base}/api/pull`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, stream: false }),
-  });
-  if (!pull.ok) throw new Error(`Ollama pull failed for ${name}`);
-  await pull.json();
-  console.log(`[ollama] model ${name} ready`);
+  for (const name of [preferred, ...MODEL_CANDIDATES]) {
+    try {
+      console.log(`[ollama] pulling model ${name}…`);
+      const pull = await fetch(`${base}/api/pull`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, stream: false }),
+      });
+      if (pull.ok) {
+        await pull.json();
+        console.log(`[ollama] model ${name} ready`);
+        return name;
+      }
+    } catch {
+      /* try next */
+    }
+  }
+  throw new Error("Ollama model pull failed — set OLLAMA_MODEL or run ollama login for glm-5.2:cloud");
 }
