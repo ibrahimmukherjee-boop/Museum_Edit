@@ -4,7 +4,6 @@ import { AtelierChatPanel, type ChatTurn } from "../components/AtelierChatPanel"
 import { FolioGlassCard } from "../components/FolioGlassCard";
 import { LiveFolioStage } from "../components/LiveFolioStage";
 import { MuseumNav } from "../components/MuseumNav";
-import { AmbientSoundscape } from "../components/AmbientSoundscape";
 import type { LeonardoZone } from "../cortex/types";
 import { askLeonardo } from "../lib/leonardoChat";
 import { demoLeonardoReply } from "../lib/demoResponses";
@@ -23,8 +22,6 @@ export default function AtelierRoomPage() {
   const [loading, setLoading] = useState(false);
   const [typingId, setTypingId] = useState<string | null>(null);
   const [chatExpanded, setChatExpanded] = useState(true);
-  const [muted, setMuted] = useState(true);
-  const [startedAudio, setStartedAudio] = useState(false);
   const [threads, setThreads] = useState<Record<string, ChatTurn[]>>({});
   const [lastProvider, setLastProvider] = useState("cortex");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -32,7 +29,6 @@ export default function AtelierRoomPage() {
 
   const folio = folios[pageIndex] ?? null;
   const turns = folio ? (threads[folio.id] ?? []) : [];
-  const soundscape = folio?.soundscape ?? (d === "art" ? "studio" : d === "anatomy" ? "dissection" : "workshop");
 
   useEffect(() => {
     setPageIndex(0);
@@ -133,21 +129,12 @@ export default function AtelierRoomPage() {
 
   return (
     <div className="atelier-luminous flex h-screen flex-col overflow-hidden">
-      {startedAudio ? <AmbientSoundscape soundscape={soundscape} muted={muted} /> : null}
-
       <header className="relative z-40 shrink-0 px-4 pt-3 pb-2">
         <MuseumNav theme="light" />
         <div className="mt-2 flex items-center justify-between gap-3">
           <p className="font-serif text-sm italic text-[#2a2218]/75">
             {folio.presenceLine ?? "Leonardo works beside you."}
           </p>
-          <button
-            type="button"
-            onClick={() => (startedAudio ? setMuted((m) => !m) : (setStartedAudio(true), setMuted(false)))}
-            className="shrink-0 rounded-full border border-amber-900/12 bg-white/60 px-3 py-1 text-[0.65rem] uppercase tracking-wider text-[#2a2218]/80"
-          >
-            {startedAudio ? (muted ? "🔇" : "🔊") : "🔇"}
-          </button>
         </div>
       </header>
 

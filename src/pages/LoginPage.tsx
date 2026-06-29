@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { GlassPanel } from "../components/GlassPanel";
+import { useWaterAmbience } from "../context/WaterAmbienceContext";
 import { setSession, verifyCredentials } from "../lib/auth";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { startWater } = useWaterAmbience();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -17,6 +19,7 @@ export default function LoginPage() {
     }
     setError("");
     setSession(name);
+    startWater();
     navigate("/");
   };
 

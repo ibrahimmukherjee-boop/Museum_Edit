@@ -1,4 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useWaterAmbience } from "../context/WaterAmbienceContext";
 import { clearSession } from "../lib/auth";
 
 interface Props {
@@ -9,6 +10,7 @@ export function MuseumNav({ theme = "dark" }: Props) {
   const loc = useLocation();
   const navigate = useNavigate();
   const path = loc.pathname;
+  const { started, muted, toggleMuted, startWater } = useWaterAmbience();
 
   const link = (to: string, label: string) => {
     const active = path === to || path.startsWith(to + "/");
@@ -33,6 +35,19 @@ export function MuseumNav({ theme = "dark" }: Props) {
       {link("/", "Home")}
       {link("/parlor", "Parlor")}
       {link("/atelier", "Atelier")}
+      <button
+        type="button"
+        onClick={() => (started ? toggleMuted() : startWater())}
+        title={muted ? "Unmute running water" : "Mute running water"}
+        aria-label={muted ? "Unmute running water" : "Mute running water"}
+        className={`rounded-full border px-3.5 py-1.5 font-[Cinzel] text-[0.7rem] tracking-wider uppercase transition ${
+          theme === "dark"
+            ? "border-transparent text-amber-200/40 hover:text-amber-100"
+            : "border-transparent text-[#2a2218]/40 hover:text-[#2a2218]"
+        }`}
+      >
+        {started && !muted ? "Water on" : "Water off"}
+      </button>
       <button
         type="button"
         onClick={() => {
