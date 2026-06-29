@@ -9,6 +9,9 @@ export interface IsolatedMeshOpts {
   segments?: number;
   depthScale?: number;
   stage?: StageMode;
+  edgeWeight?: number;
+  lumWeight?: number;
+  pageCurl?: number;
 }
 
 function isPaper(r: number, g: number, b: number, stage?: StageMode): boolean {
@@ -89,7 +92,10 @@ export async function buildIsolatedSubjectMesh(
   const planeW = opts.planeW ?? 1.05;
   const planeH = opts.planeH ?? planeW / aspect;
   const segments = opts.segments ?? 28;
-  const depthScale = opts.depthScale ?? 0.38;
+  const depthScale = opts.depthScale ?? 0.22;
+  const edgeW = opts.edgeWeight ?? 0.4;
+  const lumW = opts.lumWeight ?? 0.38;
+  const pageCurl = opts.pageCurl ?? 0.1;
   const stage = opts.stage;
 
   const dispCanvas = document.createElement("canvas");
@@ -136,13 +142,23 @@ export async function buildIsolatedSubjectMesh(
     const py = Math.min(texSize - 1, Math.floor((1 - v) * texSize));
     const pidx = py * texSize + px;
     if (origAlpha[pidx] < 8) {
-      depthGrid[row * gridW + col] = -0.08;
+      depthGrid[row * gridW + col] = 0;
       continue;
     }
     const lum = lumGrid[pidx];
     const edge = edgeRelief(lumGrid, texSize, px, py);
-    const relief = Math.pow(Math.max(0, lum - 0.08), 0.74) * 1.28 + edge * 0.62;
-    depthGrid[row * gridW + col] = relief * depthScale;
+    const relief = Math.pow(Math.max(0, lum - 0.1), 0.82) * lumW + edge * edgeW;
+    let z = relief * depthScale;
+    // Parchment curl — bottom edge stays on page, centre lifts gently forward
+    const vNorm = row / segments;
+    const uNorm = col / segments;
+    const edgeDist = Math.min(
+      Math.min(uNorm, 1 - uNorm) * 2,
+      Math.min(vNorm, 1 - vNorm) * 2,
+    );
+    const curl = Math.pow(1 - vNorm, 2.2) * pageCurl;
+    z = z * (0.35 + edgeDist * 0.65) - curl;
+    depthGrid[row * gridW + col] = Math.max(-0.02, z);
   }
 
   // Bilateral-style smooth — keeps ink ridges but removes mesh stair-steps
@@ -215,8 +231,8 @@ export async function loadNotebookTexture(
   ctx.beginPath();
   ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
   const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(rx, ry));
-  g.addColorStop(0, "rgba(0,0,0,0.55)");
-  g.addColorStop(0.7, "rgba(0,0,0,0.25)");
+  g.addColorStop(0, "rgba(0,0,0,0.62)");
+  g.addColorStop(0.55, "rgba(0,0,0,0.35)");
   g.addColorStop(1, "rgba(0,0,0,0)");
   ctx.fillStyle = g;
   ctx.fill();

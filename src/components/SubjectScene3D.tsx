@@ -3,6 +3,7 @@ import { Canvas } from "@react-three/fiber";
 import { Suspense, useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import type { FolioVisual } from "../data/folioVisuals";
+import { tuningForFolio } from "../data/folio3D";
 import { buildIsolatedSubjectMesh, loadNotebookTexture } from "../lib/displaceGeometry";
 
 function artUrl(key: string): string {
@@ -34,12 +35,7 @@ function cameraForFolio(folioId: string): { position: [number, number, number]; 
 }
 
 function depthForFolio(folioId: string, stage: FolioVisual["stage"]): number {
-  if (folioId === "c-anatomy-7" || folioId === "c-anatomy-8") return 0.52;
-  if (folioId === "p-mona-lisa") return 0.36;
-  if (folioId === "p-vitruvian-man") return 0.44;
-  if (stage === "dissection") return 0.48;
-  if (stage === "workshop") return 0.34;
-  return 0.4;
+  return tuningForFolio(folioId, stage).depthScale;
 }
 
 function IsolatedSubject({ visual, folioId }: SubjectProps) {
@@ -51,6 +47,7 @@ function IsolatedSubject({ visual, folioId }: SubjectProps) {
 
   const depth = depthForFolio(folioId, visual.stage);
   const segments = segmentsForFolio(folioId, visual.stage);
+  const tune = tuningForFolio(folioId, visual.stage);
 
   useEffect(() => {
     let cancelled = false;
@@ -60,10 +57,13 @@ function IsolatedSubject({ visual, folioId }: SubjectProps) {
     buildIsolatedSubjectMesh({
       imageUrl: artUrl(visual.foregroundKey),
       crop: visual.subjectCrop,
-      planeW: 1.1,
+      planeW: tune.planeW,
       segments,
       depthScale: depth,
       stage: visual.stage,
+      edgeWeight: tune.edgeWeight,
+      lumWeight: tune.lumWeight,
+      pageCurl: tune.pageCurl,
     })
       .then((data) => {
         if (cancelled) {
@@ -84,11 +84,13 @@ function IsolatedSubject({ visual, folioId }: SubjectProps) {
       geom?.dispose();
       tex?.dispose();
     };
-  }, [visual.foregroundKey, visual.subjectCrop, visual.stage, depth, segments, folioId]);
+  }, [visual.foregroundKey, visual.subjectCrop, visual.stage, depth, segments, folioId, tune]);
 
   const yPos = (0.48 - visual.subjectCrop.cy) * 1.15;
   const xPos = (visual.subjectCrop.cx - 0.5) * 0.38;
-  const shadowR = Math.max(0.32, visual.subjectCrop.rx * 1.35);
+  const shadowR = Math.max(0.28, visual.subjectCrop.rx * 1.1);
+  const zLift = tune.zLift;
+  const tilt = folioId === "p-mona-lisa" ? 0.06 : 0.1;
 
   if (!meshData) {
     return (
@@ -100,21 +102,23 @@ function IsolatedSubject({ visual, folioId }: SubjectProps) {
   }
 
   return (
-    <group position={[xPos, yPos, 0]} rotation={[0.1, 0, 0]}>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.42, 0.05]}>
-        <circleGeometry args={[shadowR, 24]} />
-        <meshBasicMaterial color="#1a1008" transparent opacity={0.42} depthWrite={false} />
+    <group position={[xPos, yPos, 0]} rotation={[tilt, 0, 0]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.38, 0.02]}>
+        <circleGeometry args={[shadowR, 28]} />
+        <meshBasicMaterial color="#2a1a0c" transparent opacity={0.28} depthWrite={false} />
       </mesh>
-      <mesh ref={meshRef} geometry={meshData.geometry} position={[0, 0, 0.34]} castShadow receiveShadow>
+      <mesh ref={meshRef} geometry={meshData.geometry} position={[0, 0, zLift]} castShadow receiveShadow>
         <meshStandardMaterial
           map={meshData.texture}
-          roughness={0.38}
-          metalness={0.015}
+          roughness={0.52}
+          metalness={0.008}
           side={THREE.DoubleSide}
           transparent
           alphaTest={0.05}
           depthWrite
-          normalScale={new THREE.Vector2(0.65, 0.65)}
+          emissive="#fff8ee"
+          emissiveIntensity={folioId === "p-mona-lisa" ? 0.04 : 0.02}
+          normalScale={new THREE.Vector2(0.35, 0.35)}
         />
       </mesh>
     </group>
@@ -216,7 +220,7 @@ function Scene({ visual, folioId }: Props) {
         maxPolarAngle={Math.PI / 1.9}
         target={[0, 0.05, 0.1]}
         autoRotate
-        autoRotateSpeed={0.35}
+        autoRotateSpeed={0.22}
       />
     </>
   );

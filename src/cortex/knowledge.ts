@@ -47,6 +47,7 @@ function searchTraining(query: string, domain?: string, topK = 3) {
     const words = c.text.toLowerCase().split(/\W+/);
     let score = 0;
     for (const w of q) if (words.includes(w)) score += 1;
+    if (c.source.startsWith("Personality:")) score *= 2.2;
     return score > 0
       ? { title: c.source, content: c.text, score, kind: "training" as const }
       : null;

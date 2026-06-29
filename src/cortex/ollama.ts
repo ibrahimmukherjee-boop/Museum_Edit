@@ -42,7 +42,7 @@ export async function polishWithOllama(
             role: "system",
             content:
               systemPrompt +
-              "\nRewrite the DRAFT below as Leonardo da Vinci in first person. Keep all facts. No markdown. Two to three short paragraphs.",
+              "\nRewrite the DRAFT below as Leonardo da Vinci in first person. Keep all facts. No markdown. Two to three short paragraphs. Use dry wit and specific wonder — never chatbot enthusiasm.",
           },
           { role: "user", content: `DRAFT:\n${draft}` },
         ],
