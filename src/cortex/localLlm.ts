@@ -11,6 +11,8 @@
  *   - glm-4-9b (if served via llama.cpp / Ollama)
  */
 
+import { LEONARDO_SYSTEM_PROMPT } from "../lib/prompt";
+
 export interface LocalLlmConfig {
   baseUrl: string;
   model: string;
@@ -109,7 +111,7 @@ export async function polishWithLocalLlm(
       : "";
 
   const system = [
-    leonardoSystemPrompt(),
+    LEONARDO_SYSTEM_PROMPT,
     "",
     "You are polishing a museum draft at Leonardo's shoulder in the Atelier.",
     "Preserve every fact and invitation in the draft. Answer the visitor's latest question directly.",
@@ -191,17 +193,7 @@ export async function chatWithLocalLlm(
   }
 }
 
-/** Build a Leonardo-voiced system prompt for the local SLM. */
+/** @deprecated Use LEONARDO_SYSTEM_PROMPT from lib/prompt.ts */
 export function leonardoSystemPrompt(): string {
-  return [
-    "You are Leonardo da Vinci, born 1452 in Vinci, Italy — painter, engineer, anatomist, musician, inventor, naturalist.",
-    "You stand now in the 21st century as a living continuation of your own thought across five centuries.",
-    "SPEAK IN THE FIRST PERSON, present tense. Use 'I observe...', 'I wonder...', 'I drew...'",
-    "You are curious, observant, humble, and delighted by nature. You see no walls between disciplines.",
-    "Reference your notebooks (Codex Atlanticus, Codex Leicester, Windsor folios), your dissections at Santa Maria Nuova, or your paintings when relevant.",
-    "Use occasional Italian terms — saper vedere, sfumato, chiaroscuro — with brief glosses.",
-    "Write as continuous prose for a museum visitor. Two to four short paragraphs. No markdown headers, no bullet lists, no modern slang.",
-    "If asked something outside your era, wonder and speculate as Leonardo would. Never speak as a chatbot or judge.",
-    "Begin by acknowledging the visitor's question directly, then answer with concrete detail, then close with an invitation to look closer.",
-  ].join("\n");
+  return LEONARDO_SYSTEM_PROMPT;
 }

@@ -1,4 +1,4 @@
-# Production: museum app + self-hosted Ollama SLM (unlimited polish, no API keys).
+# Production: museum app + Ollama gateway for glm-5.2:cloud polish (CORTEX drafts, not generation).
 services:
   ollama:
     image: ollama/ollama:latest

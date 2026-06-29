@@ -18,7 +18,7 @@ interface WaterAmbienceValue {
 
 const WaterAmbienceContext = createContext<WaterAmbienceValue | null>(null);
 
-function createBrownNoiseBuffer(ctx: AudioContext, seconds = 4): AudioBuffer {
+function createNoiseBuffer(ctx: AudioContext, seconds: number, brown = true): AudioBuffer {
   const sampleRate = ctx.sampleRate;
   const length = Math.floor(sampleRate * seconds);
   const buffer = ctx.createBuffer(2, length, sampleRate);
@@ -27,36 +27,28 @@ function createBrownNoiseBuffer(ctx: AudioContext, seconds = 4): AudioBuffer {
     let last = 0;
     for (let i = 0; i < length; i++) {
       const white = Math.random() * 2 - 1;
-      last = (last + 0.02 * white) / 1.02;
-      data[i] = last * 6.5;
+      last = brown ? (last + 0.02 * white) / 1.02 : white;
+      data[i] = last * (brown ? 5.5 : 0.35);
     }
   }
   return buffer;
 }
 
-function RunningWaterEngine({ active }: { active: boolean }) {
+/** Fountain — basin flow + periodic upward gush and splash. */
+function FountainWaterEngine({ active }: { active: boolean }) {
   const engineRef = useRef<{
     ctx: AudioContext;
-    sources: AudioBufferSourceNode[];
-    master: GainNode;
+    nodes: AudioNode[];
+    intervals: number[];
   } | null>(null);
 
   useEffect(() => {
     if (!active) {
       const engine = engineRef.current;
       if (engine) {
-        engine.master.gain.exponentialRampToValueAtTime(0.0001, engine.ctx.currentTime + 0.8);
-        window.setTimeout(() => {
-          engine.sources.forEach((s) => {
-            try {
-              s.stop();
-            } catch {
-              /* already stopped */
-            }
-          });
-          engine.ctx.close().catch(() => {});
-          engineRef.current = null;
-        }, 900);
+        engine.intervals.forEach((id) => window.clearInterval(id));
+        engine.ctx.close().catch(() => {});
+        engineRef.current = null;
       }
       return;
     }
@@ -70,69 +62,102 @@ function RunningWaterEngine({ active }: { active: boolean }) {
     const master = ctx.createGain();
     master.gain.value = 0.0001;
     const volume = ctx.createGain();
-    volume.gain.value = 0.32;
+    volume.gain.value = 0.38;
     master.connect(volume);
     volume.connect(ctx.destination);
 
-    const noise = createBrownNoiseBuffer(ctx, 5);
+    const nodes: AudioNode[] = [master, volume];
+    const intervals: number[] = [];
 
-    const sources: AudioBufferSourceNode[] = [];
-    const bands: { freq: number; q: number; gain: number }[] = [
-      { freq: 280, q: 0.55, gain: 0.5 },
-      { freq: 420, q: 0.45, gain: 0.38 },
-      { freq: 160, q: 0.7, gain: 0.28 },
-    ];
+    // Basin — low continuous flow into pool
+    const basinBuf = createNoiseBuffer(ctx, 6, true);
+    const basin = ctx.createBufferSource();
+    basin.buffer = basinBuf;
+    basin.loop = true;
+    const basinFilter = ctx.createBiquadFilter();
+    basinFilter.type = "lowpass";
+    basinFilter.frequency.value = 420;
+    const basinGain = ctx.createGain();
+    basinGain.gain.value = 0.42;
+    basin.connect(basinFilter);
+    basinFilter.connect(basinGain);
+    basinGain.connect(master);
+    basin.start();
+    nodes.push(basin, basinFilter, basinGain);
 
-    for (const band of bands) {
-      const src = ctx.createBufferSource();
-      src.buffer = noise;
-      src.loop = true;
-      src.playbackRate.value = 0.92 + Math.random() * 0.08;
-      const filter = ctx.createBiquadFilter();
-      filter.type = "bandpass";
-      filter.frequency.value = band.freq;
-      filter.Q.value = band.q;
-      const gain = ctx.createGain();
-      gain.gain.value = band.gain;
-      src.connect(filter);
-      filter.connect(gain);
-      gain.connect(master);
-      src.start(0, Math.random() * 2);
-      sources.push(src);
-    }
+    // Jet — mid band continuous pour
+    const jetBuf = createNoiseBuffer(ctx, 4, false);
+    const jet = ctx.createBufferSource();
+    jet.buffer = jetBuf;
+    jet.loop = true;
+    const jetFilter = ctx.createBiquadFilter();
+    jetFilter.type = "bandpass";
+    jetFilter.frequency.value = 880;
+    jetFilter.Q.value = 0.9;
+    const jetGain = ctx.createGain();
+    jetGain.gain.value = 0.22;
+    jet.connect(jetFilter);
+    jetFilter.connect(jetGain);
+    jetGain.connect(master);
+    jet.start(0, Math.random());
+    nodes.push(jet, jetFilter, jetGain);
 
-    const swell = ctx.createOscillator();
-    swell.type = "sine";
-    swell.frequency.value = 0.12;
-    const swellGain = ctx.createGain();
-    swellGain.gain.value = 0.06;
-    swell.connect(swellGain);
-    swellGain.connect(volume.gain);
-    swell.start();
+    // Periodic fountain gush — swell then splash
+    const gush = () => {
+      if (ctx.state !== "running") return;
+      const t = ctx.currentTime;
+      const swell = ctx.createGain();
+      swell.gain.setValueAtTime(0.0001, t);
+      swell.gain.exponentialRampToValueAtTime(0.55, t + 0.35);
+      swell.gain.exponentialRampToValueAtTime(0.12, t + 1.4);
+      swell.gain.exponentialRampToValueAtTime(0.0001, t + 2.2);
+      swell.connect(master);
 
-    master.gain.exponentialRampToValueAtTime(1, ctx.currentTime + 2);
+      const splashFilter = ctx.createBiquadFilter();
+      splashFilter.type = "bandpass";
+      splashFilter.frequency.setValueAtTime(1200, t);
+      splashFilter.frequency.exponentialRampToValueAtTime(2200, t + 0.25);
+      splashFilter.frequency.exponentialRampToValueAtTime(600, t + 1.1);
+      splashFilter.Q.value = 1.2;
+      splashFilter.connect(swell);
+
+      const splashBuf = createNoiseBuffer(ctx, 2.5, false);
+      const splash = ctx.createBufferSource();
+      splash.buffer = splashBuf;
+      splash.connect(splashFilter);
+      splash.start(t);
+      splash.stop(t + 2.3);
+    };
+
+    gush();
+    intervals.push(window.setInterval(gush, 2800 + Math.random() * 1400));
+
+    // Light shimmer on surface
+    const shimmer = ctx.createOscillator();
+    shimmer.type = "sine";
+    shimmer.frequency.value = 0.18;
+    const shimmerGain = ctx.createGain();
+    shimmerGain.gain.value = 0.05;
+    shimmer.connect(shimmerGain);
+    shimmerGain.connect(volume.gain);
+    shimmer.start();
+    nodes.push(shimmer, shimmerGain);
+
+    master.gain.exponentialRampToValueAtTime(1, ctx.currentTime + 2.5);
     void ctx.resume();
-
-    engineRef.current = { ctx, sources, master };
+    engineRef.current = { ctx, nodes, intervals };
 
     return () => {
-      swell.stop();
-      if (engineRef.current) {
-        const { master: m, ctx: c, sources: s } = engineRef.current;
-        m.gain.cancelScheduledValues(c.currentTime);
-        m.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + 0.6);
-        window.setTimeout(() => {
-          s.forEach((node) => {
-            try {
-              node.stop();
-            } catch {
-              /* noop */
-            }
-          });
-          c.close().catch(() => {});
-        }, 700);
-        engineRef.current = null;
+      intervals.forEach((id) => window.clearInterval(id));
+      try {
+        shimmer.stop();
+        basin.stop();
+        jet.stop();
+      } catch {
+        /* noop */
       }
+      ctx.close().catch(() => {});
+      engineRef.current = null;
     };
   }, [active]);
 
@@ -161,7 +186,7 @@ export function WaterAmbienceProvider({ children }: { children: ReactNode }) {
     <WaterAmbienceContext.Provider
       value={{ started, muted, startWater, setMuted, toggleMuted }}
     >
-      {started && !muted ? <RunningWaterEngine active /> : null}
+      {started && !muted ? <FountainWaterEngine active /> : null}
       {children}
     </WaterAmbienceContext.Provider>
   );

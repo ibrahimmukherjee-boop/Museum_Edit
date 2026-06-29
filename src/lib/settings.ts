@@ -11,7 +11,7 @@ export interface KioskSettings {
 
 const KEY = "leonardo.settings.v1";
 
-/** CORTEX on by default. Local GLM polishes curated drafts when Ollama is reachable. */
+/** CORTEX on by default. glm-5.2:cloud polishes CORTEX drafts when EC2 Ollama is reachable. */
 export const DEFAULT_SETTINGS: KioskSettings = {
   devMode: false,
   typewriterSpeedMs: 30,

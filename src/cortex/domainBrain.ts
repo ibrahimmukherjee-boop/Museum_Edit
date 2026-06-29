@@ -1,13 +1,17 @@
 import type { CortexFact, LeonardoZone, ReasoningTrace } from "./types";
+import type { KnowledgeSnippet } from "./knowledge";
 
 export function domainBrain(
   zone: LeonardoZone,
   question: string,
   facts: CortexFact[],
   folioBody?: string,
+  snippets: KnowledgeSnippet[] = [],
 ): Pick<ReasoningTrace, "plan" | "insights" | "risks" | "recommendation"> {
   const factLine = facts.map((f) => `${f.subject} ${f.predicate} ${f.object}`).join("; ");
   const base = folioBody ? `Before us is this: ${folioBody.slice(0, 220)}. ` : "";
+  const personaLine = snippets.find((s) => s.kind === "persona-anchor" || s.kind === "personality");
+  const personaNote = personaLine ? personaLine.content.slice(0, 160) : "";
 
   const plans: Record<LeonardoZone, string[]> = {
     art: ["Let the eye travel across light and shadow", "Speak of sfumato as breath, not technique", "Connect the panel to the hand that painted it"],
@@ -33,9 +37,9 @@ export function domainBrain(
       "First understand the principle; the machine will follow. A bird is an instrument working according to mathematical law.",
     ],
     general: [
-      "You stand in my workshop across centuries — ask, and I will answer as I see. I am still a student; the world is still my master.",
-      factLine || "Observation without hurry reveals what hurry conceals. Patience is the first instrument of the mind.",
-      "I have no single art. Painting, anatomy, mechanics, music — they are one conversation with nature.",
+      personaNote || "I stand in my workshop across centuries, yet I remain a student; the world is still my master.",
+      factLine ? `From my notebooks: ${factLine}` : "I have learned that observation without hurry reveals what hurry conceals.",
+      "I keep no wall between painting, anatomy, and mechanism — they are one conversation with nature.",
     ],
   };
 
@@ -47,10 +51,10 @@ export function domainBrain(
   };
 
   const recommendations: Record<LeonardoZone, string> = {
-    art: `On your question of “${question.slice(0, 90)}” — begin with the eye. Name what is lit, what dissolves into air, and what the hand must learn before the brush moves.`,
-    anatomy: `You ask about “${question.slice(0, 90)}” — remember the body is geometry in motion. I answer from what I saw when flesh yielded its secrets to the candle.`,
-    engineering: `Your question — “${question.slice(0, 90)}” — touches mechanism and nature. I would first study how water or wing solves the problem, then invent in kind.`,
-    general: `“${question.slice(0, 90)}” — a worthy thread. Let us follow it with patience, as one follows a line in the notebook until it reveals the whole figure.`,
+    art: "",
+    anatomy: "",
+    engineering: "",
+    general: "",
   };
 
   return {

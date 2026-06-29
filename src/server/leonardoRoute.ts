@@ -1,4 +1,5 @@
 import { runLeonardoCortex } from "../cortex/index";
+import { buildPolishContext, retrieveKnowledge } from "../cortex/knowledge";
 import { polishDraft, polishProviderLabel } from "../cortex/polish";
 import { LEONARDO_SYSTEM_PROMPT } from "../lib/prompt";
 import type { CortexInput } from "../cortex/types";
@@ -27,7 +28,14 @@ export async function handleLeonardoRequest(body: LeonardoRequestBody) {
   let provider = cortex.provider;
 
   if (body.polish !== false) {
-    const polished = await polishDraft(reply, LEONARDO_SYSTEM_PROMPT);
+    const zone = cortex.trace.zone;
+    const snippets = retrieveKnowledge(
+      input.question,
+      zone === "general" ? undefined : zone,
+      6,
+    );
+    const corpusContext = buildPolishContext(snippets);
+    const polished = await polishDraft(reply, LEONARDO_SYSTEM_PROMPT, corpusContext);
     if (polished) {
       reply = polished.text;
       provider = polishProviderLabel(polished.provider);

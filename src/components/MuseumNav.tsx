@@ -38,15 +38,16 @@ export function MuseumNav({ theme = "dark" }: Props) {
       <button
         type="button"
         onClick={() => (started ? toggleMuted() : startWater())}
-        title={muted ? "Unmute running water" : "Mute running water"}
-        aria-label={muted ? "Unmute running water" : "Mute running water"}
-        className={`rounded-full border px-3.5 py-1.5 font-[Cinzel] text-[0.7rem] tracking-wider uppercase transition ${
+        title="Ambience sound"
+        aria-label="Ambience sound"
+        className={`flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 font-[Cinzel] text-[0.7rem] tracking-wider uppercase transition ${
           theme === "dark"
             ? "border-transparent text-amber-200/40 hover:text-amber-100"
             : "border-transparent text-[#2a2218]/40 hover:text-[#2a2218]"
         }`}
       >
-        {started && !muted ? "Water on" : "Water off"}
+        <span>Ambience sound</span>
+        <span aria-hidden>{started && !muted ? "🔊" : "🔇"}</span>
       </button>
       <button
         type="button"

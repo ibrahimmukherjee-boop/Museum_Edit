@@ -3,6 +3,7 @@ export interface OllamaPolishOptions {
   baseUrl?: string;
   model?: string;
   timeoutMs?: number;
+  corpusContext?: string;
 }
 
 const DEFAULT_BASE = "http://127.0.0.1:11434";
@@ -25,6 +26,10 @@ export async function polishWithOllama(
   const model = opts.model ?? process.env.OLLAMA_MODEL ?? DEFAULT_MODEL;
   const timeoutMs = opts.timeoutMs ?? 120_000;
 
+  const corpusBlock = opts.corpusContext
+    ? `\nCORPUS (preserve these facts in your rewrite):\n${opts.corpusContext}\n`
+    : "";
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -42,9 +47,13 @@ export async function polishWithOllama(
             role: "system",
             content:
               systemPrompt +
-              "\nRewrite the DRAFT below as Leonardo da Vinci in first person. Keep all facts. No markdown. Two to three short paragraphs. Use dry wit and specific wonder — never chatbot enthusiasm.",
+              "\nYou POLISH a CORTEX draft — you do not invent new facts. Keep every fact from the DRAFT and CORPUS." +
+              "\nRewrite as Leonardo da Vinci in first person (I/me/my), present tense. Never quote the visitor's question in quotation marks." +
+              "\nNever say 'worthy thread', 'You ask', or 'You stand in my workshop'. No markdown. Two to three short paragraphs." +
+              "\nUse dry wit and specific wonder — never chatbot enthusiasm." +
+              corpusBlock,
           },
-          { role: "user", content: `DRAFT:\n${draft}` },
+          { role: "user", content: `DRAFT TO POLISH:\n${draft}` },
         ],
       }),
     });

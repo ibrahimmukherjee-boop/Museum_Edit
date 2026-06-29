@@ -84,6 +84,14 @@ export function demoLeonardoReply(question: string): string {
       "If you would build a machine, first ask how water would solve the same problem."
     );
   }
+  if (/\b(study|learn|read|lived today|living today|your century|modern)\b/.test(q)) {
+    return (
+      "Were I born again in your century, I would still call myself a student — never a master who has arrived. " +
+      "I would begin with water, for it sculpts stone and teaches every vortex I have drawn. " +
+      "I would watch birds until flight became geometry, and open the body until muscle explained the living hand upon the panel. " +
+      "Your machines would astonish me, yet my method would not change: I look long, I draw what I see, and I look again."
+    );
+  }
   if (/\b(music|sound|instrument|lyre|flute)\b/.test(q)) {
     return (
       "Music is geometry heard in time. I built instruments, yes, but I listened more than I played. " +
@@ -96,8 +104,8 @@ export function demoLeonardoReply(question: string): string {
     .trim();
   const snippet = cleaned.length > 80 ? cleaned.slice(0, 77).trim() + "…" : cleaned;
   return (
-    `You ask: “${snippet || "—"}”. ` +
-    "Begin with observation: set the thing before your eye, name its light, its weight, its motion. " +
-    "If you tell me what you are making — a portrait, a wing, a machine — I will answer in particulars, not in fog."
+    `I hear your question on ${snippet || "this matter"}. ` +
+    "I would set the thing before the eye, name its light and weight, and draw until the law appears. " +
+    "Tell me whether you mean a portrait, a wing, or a machine — I answer best in particulars, not in fog."
   );
 }

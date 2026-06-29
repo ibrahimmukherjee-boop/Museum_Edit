@@ -16,7 +16,7 @@ export interface AskLeonardoOpts {
   useLlmPolish?: boolean;
 }
 
-const POLISH_BUDGET_MS = 800;
+const POLISH_BUDGET_MS = 28_000;
 
 function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
   return Promise.race([
@@ -51,8 +51,8 @@ export async function askLeonardo(opts: AskLeonardoOpts): Promise<{ reply: strin
   const reply = cortex.reply || demoLeonardoReply(opts.question);
   const provider = cortex.provider;
 
-  // Atelier / GitHub Pages: return immediately — no 14s API hang.
-  if (opts.instant !== false && (opts.instant || opts.folioContext)) {
+  // Kiosk instant mode — skip cloud polish only when explicitly requested.
+  if (opts.instant === true) {
     return { reply, provider };
   }
 

@@ -11,7 +11,7 @@ import { stripMuseumNavMarkers } from "../lib/museumNavigation";
 import { foliosForDomain, type WebFolio } from "../lib/folios";
 
 const FOLIO_GREETING =
-  "You stand at my shoulder — ask what you see before us. I answer from the folio, the panel, the page.";
+  "I work at your shoulder — ask what you see before us. I answer from the folio, the panel, the page.";
 
 export default function AtelierRoomPage() {
   const { domain } = useParams<{ domain: string }>();
@@ -80,8 +80,8 @@ export default function AtelierRoomPage() {
             domain: folioTarget.domain,
           },
           hotspotLabel,
-          instant: true,
-          useLlmPolish: false,
+          instant: false,
+          useLlmPolish: true,
         });
         reply = stripMuseumNavMarkers(result.reply?.trim() || demoLeonardoReply(t));
         setLastProvider(result.provider);

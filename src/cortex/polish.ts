@@ -3,14 +3,15 @@ import { polishWithLlm } from "./llmCloud";
 
 export type PolishProvider = "ollama" | "groq" | "huggingface" | "none";
 
-/** Polish CORTEX draft: Ollama (self-hosted) first, then optional cloud fallbacks. */
+/** Polish CORTEX draft via glm-5.2:cloud (Ollama) — voice only; facts from RAG draft. */
 export async function polishDraft(
   draft: string,
   systemPrompt: string,
+  corpusContext?: string,
 ): Promise<{ text: string; provider: PolishProvider } | null> {
   const useOllama = process.env.OLLAMA_BASE_URL || process.env.OLLAMA_MODEL || process.env.USE_OLLAMA === "1";
   if (useOllama) {
-    const ollama = await polishWithOllama(draft, systemPrompt);
+    const ollama = await polishWithOllama(draft, systemPrompt, { corpusContext });
     if (ollama) return { text: ollama, provider: "ollama" };
   }
 
@@ -30,7 +31,8 @@ export async function polishDraft(
 }
 
 export function polishProviderLabel(p: PolishProvider): string {
-  if (p === "ollama") return "cortex+ollama";
+  const model = process.env.OLLAMA_MODEL ?? "glm-5.2:cloud";
+  if (p === "ollama") return `cortex+${model}`;
   if (p === "groq") return "cortex+groq";
   if (p === "huggingface") return "cortex+hf";
   return "cortex";
