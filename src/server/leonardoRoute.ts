@@ -1,5 +1,6 @@
 import { runLeonardoCortex } from "../cortex/index";
 import { buildPolishContext, retrieveKnowledge } from "../cortex/knowledge";
+import { sanitizeLeonardoReply } from "../cortex/corpusFilter";
 import { polishDraft, polishProviderLabel } from "../cortex/polish";
 import { LEONARDO_SYSTEM_PROMPT } from "../lib/prompt";
 import type { CortexInput } from "../cortex/types";
@@ -37,10 +38,12 @@ export async function handleLeonardoRequest(body: LeonardoRequestBody) {
     const corpusContext = buildPolishContext(snippets);
     const polished = await polishDraft(reply, LEONARDO_SYSTEM_PROMPT, corpusContext);
     if (polished) {
-      reply = polished.text;
+      reply = sanitizeLeonardoReply(polished.text, input.question);
       provider = polishProviderLabel(polished.provider);
     }
   }
+
+  reply = sanitizeLeonardoReply(reply, input.question);
 
   return {
     status: 200 as const,

@@ -54,6 +54,8 @@ function pdfToText(path) {
 function chunkText(text, source, domain = "general", maxChunks = 48) {
   const clean = text.replace(/\s+/g, " ").trim();
   if (!clean) return [];
+  if (/^Transcription for/i.test(clean)) return [];
+  if (/SPEAKER_\d+/i.test(clean)) return [];
   const sentences = clean.split(/(?<=[.!?])\s+/).filter((s) => s.length > 40);
   const chunks = [];
   let buf = "";
@@ -95,6 +97,9 @@ function ingestJsonFile(filename, label, maxChunksPerDoc = 16) {
     const text = row.text ?? row.content ?? row.body ?? "";
     const docId = row.doc_id ?? row.id ?? row.title ?? label;
     if (!text || text.length < 80) continue;
+    if (/^Transcription for/i.test(text.trim())) continue;
+    if (/SPEAKER_\d+/i.test(text) && /GMT202/i.test(text)) continue;
+    if (label === "Polymath Festival" && /transcription/i.test(String(docId))) continue;
     const domain = domainForDocId(String(docId));
     const source = `${label}: ${docId}`;
     const added = chunkText(text, source, domain, maxChunksPerDoc);
@@ -136,7 +141,8 @@ for (const [src, dest, label, domain, maxC] of pdfs) {
 
 ingestJsonFile("codex_data (1).json", "Codex", 24);
 ingestJsonFile("Masterclass_data (2).json", "Masterclass", 20);
-ingestJsonFile("Polymath_festival.json", "Polymath Festival", 12);
+// Polymath Festival JSON is conference transcription — excluded from visitor RAG (voice contamination).
+// ingestJsonFile("Polymath_festival.json", "Polymath Festival", 12);
 
 const worksDir = join(assets, "leonardo_da_vinci_works", "leonardo_da_vinci");
 if (existsSync(worksDir)) {

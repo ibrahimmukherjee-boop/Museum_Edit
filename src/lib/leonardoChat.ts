@@ -1,4 +1,5 @@
 import { runLeonardoCortex } from "../cortex/index";
+import { sanitizeLeonardoReply } from "../cortex/corpusFilter";
 import { localLlmReady, polishWithLocalLlm, resolveLocalModel } from "../cortex/localLlm";
 import { demoLeonardoReply } from "./demoResponses";
 import { loadSettings } from "./settings";
@@ -48,7 +49,7 @@ export async function askLeonardo(opts: AskLeonardoOpts): Promise<{ reply: strin
     hotspotLabel: opts.hotspotLabel,
   });
 
-  const reply = cortex.reply || demoLeonardoReply(opts.question);
+  const reply = sanitizeLeonardoReply(cortex.reply || demoLeonardoReply(opts.question), opts.question);
   const provider = cortex.provider;
 
   // Kiosk instant mode — skip cloud polish only when explicitly requested.
@@ -98,7 +99,12 @@ export async function askLeonardo(opts: AskLeonardoOpts): Promise<{ reply: strin
       );
       if (res?.ok) {
         const data = (await res.json()) as { reply?: string; provider?: string };
-        if (data.reply) return { reply: data.reply, provider: data.provider ?? "cortex+llm" };
+        if (data.reply) {
+          return {
+            reply: sanitizeLeonardoReply(data.reply, opts.question),
+            provider: data.provider ?? "cortex+llm",
+          };
+        }
       }
     } catch {
       /* cortex stands */
