@@ -16,7 +16,7 @@ export interface AskLeonardoOpts {
   useLlmPolish?: boolean;
 }
 
-const POLISH_BUDGET_MS = 90_000;
+const POLISH_BUDGET_MS = 120_000;
 
 function isLocalDevHost(): boolean {
   if (typeof window === "undefined") return false;

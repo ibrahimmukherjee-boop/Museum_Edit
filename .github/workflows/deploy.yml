@@ -45,9 +45,12 @@ jobs:
             set -e
             cd /opt/leonardo-museum
             git pull origin main || git pull origin master || true
+            echo "OLLAMA_MODEL=qwen2.5:3b" > .env
             export IMAGE=${{ env.REGISTRY }}/${{ github.repository }}/leonardo-museum:latest
             docker compose pull || true
-            docker compose build app
-            docker compose up -d
-            sleep 15
+            docker compose up -d --build
+            sleep 45
             curl -fsS http://127.0.0.1:8080/api/health
+            curl -fsS -m 120 -X POST http://127.0.0.1:8080/api/leonardo \
+              -H "Content-Type: application/json" \
+              -d '{"question":"Who are you?","polish":true}' | head -c 200

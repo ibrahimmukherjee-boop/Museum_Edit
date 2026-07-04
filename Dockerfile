@@ -20,7 +20,7 @@ COPY public ./public
 ENV NODE_ENV=production
 ENV PORT=8080
 ENV OLLAMA_BASE_URL=http://ollama:11434
-ENV OLLAMA_MODEL=glm-5.2:cloud
+ENV OLLAMA_MODEL=qwen2.5:3b
 ENV USE_OLLAMA=1
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \

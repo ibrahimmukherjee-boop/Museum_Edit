@@ -1,5 +1,6 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { ProviderBadge } from "../components/ProviderBadge";
 import { GlassPanel } from "../components/GlassPanel";
 import { LuminousShimmerOverlay } from "../components/LuminousShimmerOverlay";
 import { MuseumNav } from "../components/MuseumNav";
@@ -25,6 +26,7 @@ export default function ConversationPage() {
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [lastProvider, setLastProvider] = useState("cortex");
   const [typingId, setTypingId] = useState<string | null>(null);
   const [localModelStatus, setLocalModelStatus] = useState<"unknown" | "ready" | "offline">("unknown");
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -83,6 +85,7 @@ export default function ConversationPage() {
         const result = await askLeonardo({ question: t, history, useLlmPolish: true });
         reply = result.reply || demoLeonardoReply(t);
         provider = result.provider;
+        setLastProvider(provider);
       }
     } catch {
       reply = demoLeonardoReply(t);
@@ -124,7 +127,9 @@ export default function ConversationPage() {
             <p className="font-[Cinzel] text-[0.65rem] tracking-[0.2em] text-[#2a2218]/45 uppercase">In Conversation With</p>
             <h1 className="font-[Cinzel] text-2xl text-[#2a2218] text-glow">Leonardo da Vinci</h1>
           </div>
-          <div className="flex shrink-0 items-center gap-2 text-sm text-[#2a2218]/55">
+          <div className="flex shrink-0 flex-col items-end gap-1 text-sm text-[#2a2218]/55">
+            <ProviderBadge provider={lastProvider} />
+            <div className="flex items-center gap-2">
             <span>
               {userTurns} / {settings.maxTurns}
             </span>
@@ -139,6 +144,7 @@ export default function ConversationPage() {
             >
               ⚙
             </button>
+            </div>
           </div>
         </div>
       </header>
@@ -171,7 +177,7 @@ export default function ConversationPage() {
         {loading && (
           <GlassPanel variant="cream" className="max-w-[92%] p-4">
             <span className="block font-[Cinzel] text-[0.65rem] tracking-[0.18em] text-[#2a2218]/45 uppercase">Leonardo</span>
-            <p className="mt-1 italic text-[#2a2218]/50">✒ …</p>
+            <p className="mt-1 font-serif text-base italic text-[#2a2218]/55">Leonardo is thinking…</p>
           </GlassPanel>
         )}
         {turns.length === 1 && !loading && (

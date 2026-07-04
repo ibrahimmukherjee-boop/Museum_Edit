@@ -3,7 +3,7 @@ import { createServer } from "node:http";
 import { readFile } from "node:fs";
 import { join, extname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { ensureOllamaModel, ollamaReady, getActiveOllamaModel } from "../src/cortex/ollama";
+import { ensureOllamaModel, ollamaReady, getActiveOllamaModel, warmupOllamaModel } from "../src/cortex/ollama";
 import { handleLeonardoRequest } from "../src/server/leonardoRoute";
 
 const root = join(fileURLToPath(new URL(".", import.meta.url)), "..", "dist");
@@ -30,7 +30,8 @@ async function bootstrap() {
     }
     if (process.env.OLLAMA_PULL_ON_START !== "0") {
       try {
-        await ensureOllamaModel();
+        const model = await ensureOllamaModel();
+        await warmupOllamaModel(undefined, model);
       } catch (e) {
         console.warn("[boot] Ollama model pull skipped:", e);
       }

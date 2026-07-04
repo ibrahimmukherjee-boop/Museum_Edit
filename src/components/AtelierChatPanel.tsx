@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { GlassPanel } from "./GlassPanel";
+import { ProviderBadge } from "./ProviderBadge";
 import { LuminousShimmerOverlay } from "./LuminousShimmerOverlay";
 import { TypewriterText } from "./TypewriterText";
 
@@ -62,7 +63,7 @@ export function AtelierChatPanel({
           Leonardo · {folioTitle}
         </span>
         <span className="flex items-center gap-2 text-xs text-[#2a2218]/40">
-          {provider ? <span className="hidden sm:inline">{provider}</span> : null}
+          {provider ? <ProviderBadge provider={provider} /> : null}
           {expanded ? "▼" : "▲"} Chat
         </span>
       </button>
@@ -103,7 +104,7 @@ export function AtelierChatPanel({
                 <span className="block font-[Cinzel] text-[0.55rem] tracking-[0.14em] text-[#2a2218]/38 uppercase">
                   Leonardo
                 </span>
-                <p className="mt-1 font-serif text-base italic text-[#2a2218]/50">✒ …</p>
+                <p className="mt-1 font-serif text-base italic text-[#2a2218]/55">Leonardo is thinking…</p>
               </GlassPanel>
             ) : null}
             {showStarters && onStarter ? (

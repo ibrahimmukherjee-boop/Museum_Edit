@@ -97,7 +97,7 @@ export async function polishWithOllama(
 ): Promise<{ text: string; model: string } | null> {
   const base = baseUrl(opts);
   const preferred = opts.model ?? process.env.OLLAMA_MODEL ?? DEFAULT_MODEL;
-  const timeoutMs = opts.timeoutMs ?? 120_000;
+  const timeoutMs = opts.timeoutMs ?? 120_000; // EC2 cold-start polish can exceed 90s
 
   const corpusBlock = opts.corpusContext
     ? `\nCORPUS (personality + facts — preserve meaning, never quote labels or meta-text):\n${opts.corpusContext}\n`
@@ -185,4 +185,16 @@ export async function ensureOllamaModel(model?: string, baseUrlArg?: string): Pr
     }
   }
   throw new Error("Ollama: no working local model — set OLLAMA_MODEL=qwen2.5:3b");
+}
+
+/** Pre-load model weights so first visitor request is not a cold start. */
+export async function warmupOllamaModel(baseUrlArg?: string, model?: string): Promise<void> {
+  const base = (baseUrlArg ?? process.env.OLLAMA_BASE_URL ?? DEFAULT_BASE).replace(/\/$/, "");
+  const name = model ?? activeModel ?? process.env.OLLAMA_MODEL ?? DEFAULT_MODEL;
+  try {
+    await chatOnce(base, name, "Reply OK.", "warmup", 90_000);
+    console.log(`[ollama] warmup complete: ${name}`);
+  } catch {
+    console.warn(`[ollama] warmup skipped for ${name}`);
+  }
 }

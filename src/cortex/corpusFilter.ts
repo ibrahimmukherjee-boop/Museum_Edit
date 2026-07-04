@@ -40,6 +40,11 @@ export function sanitizeLeonardoReply(text: string, question?: string): string {
     .replace(/\b(give them a major shout out|my dissertation|going live|zoom call)\b[^.!?]*[.!?]/gi, "")
     .replace(/\bIn my notebooks I saw that[^.!?]*[.!?]/gi, "")
     .replace(/\bAccording to (the|my) (brief|notebooks I saw)[^.!?]*[.!?]/gi, "")
+    .replace(/\bLeonardo's humour[^.!?]*[.!?]/gi, "")
+    .replace(/\bLeonardo is[^.!?]*[.!?]/gi, "")
+    .replace(/\bLeonardo was[^.!?]*[.!?]/gi, "")
+    .replace(/\bThe actual Leonardo[^.!?]*[.!?]/gi, "")
+    .replace(/\bDVNC\.ai[^.!?]*[.!?]/gi, "")
     .replace(/\s+/g, " ")
     .trim();
 
