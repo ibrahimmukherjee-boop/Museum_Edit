@@ -1,7 +1,7 @@
 import { runLeonardoCortex } from "../cortex/index";
 import { sanitizeLeonardoReply } from "../cortex/corpusFilter";
 import { demoLeonardoReply } from "./demoResponses";
-import { loadSettings } from "./settings";
+import { loadSettings, wantsLlmPolish } from "./settings";
 import { getSession } from "./auth";
 import { LEONARDO_SYSTEM_PROMPT } from "./prompt";
 import type { LeonardoZone } from "../cortex/types";
@@ -11,8 +11,9 @@ export interface AskLeonardoOpts {
   history?: { role: "user" | "assistant"; content: string }[];
   folioContext?: { title: string; body: string; domain?: LeonardoZone };
   hotspotLabel?: string;
-  /** When true, skip GLM polish (kiosk fast path). */
+  /** Force skip SLM polish (kiosk fast path, sub-second). */
   instant?: boolean;
+  /** Override settings; default follows kiosk fast mode. */
   useLlmPolish?: boolean;
 }
 
@@ -31,7 +32,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
 }
 
 /**
- * CORTEX draft → server GLM polish (EC2). Browser never calls localhost Ollama in production.
+ * Default: CORTEX in-browser (~sub-second). Optional SLM polish via /api/leonardo when enabled.
  */
 export async function askLeonardo(opts: AskLeonardoOpts): Promise<{ reply: string; provider: string }> {
   const session = getSession();
@@ -54,46 +55,46 @@ export async function askLeonardo(opts: AskLeonardoOpts): Promise<{ reply: strin
 
   const draft = sanitizeLeonardoReply(cortex.reply || demoLeonardoReply(opts.question), opts.question);
 
-  if (opts.instant === true) {
+  const wantPolish =
+    opts.instant !== true &&
+    (opts.useLlmPolish === true || (opts.useLlmPolish !== false && wantsLlmPolish(settings)));
+
+  if (!wantPolish) {
     return { reply: draft, provider: cortex.provider };
   }
 
-  const wantPolish = opts.useLlmPolish !== false;
-
-  if (wantPolish) {
-    try {
-      const res = await withTimeout(
-        fetch("/api/leonardo", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            question: opts.question,
-            history: opts.history ?? [],
-            folioContext: opts.folioContext,
-            hotspotLabel: opts.hotspotLabel,
-            memory,
-            polish: true,
-            draft,
-          }),
+  try {
+    const res = await withTimeout(
+      fetch("/api/leonardo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: opts.question,
+          history: opts.history ?? [],
+          folioContext: opts.folioContext,
+          hotspotLabel: opts.hotspotLabel,
+          memory,
+          polish: true,
+          draft,
         }),
-        POLISH_BUDGET_MS,
-        null as unknown as Response,
-      );
-      if (res?.ok) {
-        const data = (await res.json()) as { reply?: string; provider?: string };
-        if (data.reply?.trim()) {
-          return {
-            reply: sanitizeLeonardoReply(data.reply, opts.question),
-            provider: data.provider ?? "cortex+qwen2.5:3b",
-          };
-        }
+      }),
+      POLISH_BUDGET_MS,
+      null as unknown as Response,
+    );
+    if (res?.ok) {
+      const data = (await res.json()) as { reply?: string; provider?: string };
+      if (data.reply?.trim()) {
+        return {
+          reply: sanitizeLeonardoReply(data.reply, opts.question),
+          provider: data.provider ?? "cortex+qwen2.5:3b",
+        };
       }
-    } catch {
-      /* fall through to draft */
     }
+  } catch {
+    /* fall through to draft */
   }
 
-  if (wantPolish && isLocalDevHost() && settings.useLocalModel) {
+  if (isLocalDevHost() && settings.useLocalModel) {
     const { localLlmReady, polishWithLocalLlm, resolveLocalModel } = await import("../cortex/localLlm");
     const ready = await withTimeout(localLlmReady({ baseUrl: settings.localModelUrl }), 800, false);
     if (ready) {

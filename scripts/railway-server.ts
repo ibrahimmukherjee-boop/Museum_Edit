@@ -3,7 +3,7 @@ import { createServer } from "node:http";
 import { readFile } from "node:fs";
 import { join, extname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { ensureOllamaModel, ollamaReady, getActiveOllamaModel, warmupOllamaModel } from "../src/cortex/ollama";
+import { ensureOllamaModel, ollamaReady, getActiveOllamaModel, warmupOllamaModel, startOllamaKeepalive } from "../src/cortex/ollama";
 import { handleLeonardoRequest } from "../src/server/leonardoRoute";
 
 const root = join(fileURLToPath(new URL(".", import.meta.url)), "..", "dist");
@@ -37,6 +37,7 @@ async function bootstrap() {
       }
     }
     console.log("[boot] Ollama ready");
+    startOllamaKeepalive();
   }
 }
 
@@ -53,6 +54,8 @@ createServer(async (req, res) => {
         ok: true,
         ollama,
         model: getActiveOllamaModel() ?? process.env.OLLAMA_MODEL ?? "qwen2.5:3b",
+        mode: process.env.KIOSK_FAST_MODE === "1" ? "fast" : "standard",
+        slmReady: ollama && Boolean(getActiveOllamaModel()),
       }),
     );
     return;

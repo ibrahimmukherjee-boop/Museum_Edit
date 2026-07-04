@@ -67,7 +67,7 @@ async function chatOnce(
       body: JSON.stringify({
         model,
         stream: false,
-        options: { temperature: 0.75, num_predict: 500 },
+        options: { temperature: 0.75, num_predict: 220, num_ctx: 2048 },
         messages: [
           { role: "system", content: systemContent },
           { role: "user", content: userContent },
@@ -197,4 +197,19 @@ export async function warmupOllamaModel(baseUrlArg?: string, model?: string): Pr
   } catch {
     console.warn(`[ollama] warmup skipped for ${name}`);
   }
+}
+
+/** Keep SLM loaded in memory between optional polish requests. */
+export function startOllamaKeepalive(intervalMs = 4 * 60 * 1000): void {
+  if (!process.env.OLLAMA_BASE_URL && process.env.USE_OLLAMA !== "1") return;
+  const base = (process.env.OLLAMA_BASE_URL ?? DEFAULT_BASE).replace(/\/$/, "");
+  setInterval(async () => {
+    const name = activeModel ?? process.env.OLLAMA_MODEL ?? DEFAULT_MODEL;
+    try {
+      await chatOnce(base, name, "OK", "ping", 20_000);
+    } catch {
+      /* ignore */
+    }
+  }, intervalMs);
+  console.log(`[ollama] keepalive every ${intervalMs / 1000}s`);
 }

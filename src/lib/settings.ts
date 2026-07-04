@@ -6,12 +6,15 @@ export interface KioskSettings {
   analyticsEnabled: boolean;
   localModelUrl: string;
   localModelName: string;
+  /** Browser-only local Ollama (dev). */
   useLocalModel: boolean;
+  /** When true, POST to /api/leonardo for SLM polish (~30–90s). Off = instant CORTEX (~sub-second). */
+  useLlmPolish: boolean;
 }
 
 const KEY = "leonardo.settings.v1";
 
-/** CORTEX on by default. glm-5.2:cloud polishes CORTEX drafts when EC2 Ollama is reachable. */
+/** Kiosk defaults: fast CORTEX path. SLM on EC2 stays warm for optional polish. */
 export const DEFAULT_SETTINGS: KioskSettings = {
   devMode: false,
   typewriterSpeedMs: 30,
@@ -19,8 +22,9 @@ export const DEFAULT_SETTINGS: KioskSettings = {
   maxTurns: 12,
   analyticsEnabled: false,
   localModelUrl: "http://127.0.0.1:11434",
-  localModelName: "glm-5.2:cloud",
+  localModelName: "qwen2.5:3b",
   useLocalModel: false,
+  useLlmPolish: false,
 };
 
 export function loadSettings(): KioskSettings {
@@ -35,4 +39,9 @@ export function loadSettings(): KioskSettings {
 
 export function saveSettings(s: KioskSettings): void {
   localStorage.setItem(KEY, JSON.stringify(s));
+}
+
+/** Production kiosk: instant CORTEX unless visitor enables SLM polish in settings. */
+export function wantsLlmPolish(settings: KioskSettings): boolean {
+  return settings.useLlmPolish === true && !settings.devMode;
 }

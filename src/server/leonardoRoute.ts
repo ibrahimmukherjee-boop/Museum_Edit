@@ -28,7 +28,10 @@ export async function handleLeonardoRequest(body: LeonardoRequestBody) {
   let reply = body.draft ?? cortex.reply;
   let provider = body.draft ? "cortex+draft" : cortex.provider;
 
-  if (body.polish !== false) {
+  const kioskFast = process.env.KIOSK_FAST_MODE === "1";
+  const shouldPolish = body.polish === true || (!kioskFast && body.polish !== false);
+
+  if (shouldPolish) {
     const zone = cortex.trace.zone;
     const corpusContext = buildLeonardoPolishContext(input.question, zone, 6);
     const polished = await polishDraft(

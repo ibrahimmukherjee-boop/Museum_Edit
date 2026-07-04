@@ -15,6 +15,7 @@
     "corpus": "node scripts/build-corpus.mjs",
     "test:cortex": "tsx scripts/test-cortex.ts",
     "smoke:ec2": "node scripts/smoke-ec2-parlor.mjs",
+    "smoke:fast": "node scripts/smoke-ec2-fast.mjs",
     "preview": "vite preview",
     "serve": "npm run sync:assets && npm run build && npx concurrently -k \"npm run dev:api\" \"node scripts/serve-public.mjs\"",
     "museum": "npx concurrently -k \"npm run dev:api\" \"npm run dev\"",

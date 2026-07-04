@@ -82,7 +82,7 @@ export default function ConversationPage() {
         reply = demoLeonardoReply(t);
       } else {
         const history = nextTurns.map((m) => ({ role: m.role, content: m.content }));
-        const result = await askLeonardo({ question: t, history, useLlmPolish: true });
+        const result = await askLeonardo({ question: t, history });
         reply = result.reply || demoLeonardoReply(t);
         provider = result.provider;
         setLastProvider(provider);
@@ -235,10 +235,22 @@ export default function ConversationPage() {
             <p className="mt-1 text-xs text-[#2a2218]/50">CORTEX is on by default. Enable Demo for offline canned replies.</p>
 
             <label className="mt-4 flex items-center justify-between gap-3 text-sm">
-              <span>Use local SLM (Ollama)</span>
+              <span>Enhanced SLM voice (slower ~60s)</span>
+              <input
+                type="checkbox"
+                checked={settings.useLlmPolish}
+                onChange={(e) => patchSettings({ useLlmPolish: e.target.checked })}
+              />
+            </label>
+            <p className="mt-1 text-xs text-[#2a2218]/50">
+              Off by default for instant CORTEX replies. SLM (qwen2.5:3b) runs on the museum server when enabled.
+            </p>
+
+            <label className="mt-4 flex items-center justify-between gap-3 text-sm">
+              <span>Use local SLM (Ollama dev)</span>
               <input type="checkbox" checked={settings.useLocalModel} onChange={(e) => patchSettings({ useLocalModel: e.target.checked })} />
             </label>
-            <p className="mt-1 text-xs text-[#2a2218]/50">GLM / Ollama polishes CORTEX drafts — start Ollama with your model first.</p>
+            <p className="mt-1 text-xs text-[#2a2218]/50">Dev only — polish via browser localhost Ollama.</p>
 
             {settings.useLocalModel && (
               <>

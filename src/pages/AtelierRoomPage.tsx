@@ -80,8 +80,6 @@ export default function AtelierRoomPage() {
             domain: folioTarget.domain,
           },
           hotspotLabel,
-          instant: false,
-          useLlmPolish: true,
         });
         reply = stripMuseumNavMarkers(result.reply?.trim() || demoLeonardoReply(t));
         setLastProvider(result.provider);
