@@ -20,7 +20,7 @@ export function runLeonardoCortex(input: CortexInput): CortexOutput {
     });
   }
   const facts = extractFacts(snippets);
-  const brain = domainBrain(zone, input.question, facts, input.folioContext?.body, snippets);
+  const brain = domainBrain(zone, input.question, facts, input.folioContext?.body);
   const criticNotes = runCritic(brain.insights, brain.risks);
   const verification = verify(facts, brain.insights);
 

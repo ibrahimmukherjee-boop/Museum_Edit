@@ -1,17 +1,13 @@
 import type { CortexFact, LeonardoZone, ReasoningTrace } from "./types";
-import type { KnowledgeSnippet } from "./knowledge";
 
 export function domainBrain(
   zone: LeonardoZone,
   question: string,
   facts: CortexFact[],
   folioBody?: string,
-  snippets: KnowledgeSnippet[] = [],
 ): Pick<ReasoningTrace, "plan" | "insights" | "risks" | "recommendation"> {
   const factLine = facts.map((f) => `${f.subject} ${f.predicate} ${f.object}`).join("; ");
   const base = folioBody ? `Before us is this: ${folioBody.slice(0, 220)}. ` : "";
-  const personaLine = snippets.find((s) => s.kind === "persona-anchor" || s.kind === "personality");
-  const personaNote = personaLine ? personaLine.content.slice(0, 160) : "";
 
   const plans: Record<LeonardoZone, string[]> = {
     art: ["Let the eye travel across light and shadow", "Speak of sfumato as breath, not technique", "Connect the panel to the hand that painted it"],
@@ -37,8 +33,8 @@ export function domainBrain(
       "First understand the principle; the machine will follow. A bird is an instrument working according to mathematical law.",
     ],
     general: [
-      personaNote || "I stand in my workshop across centuries, yet I remain a student; the world is still my master.",
-      factLine ? `From my notebooks: ${factLine}` : "I have learned that observation without hurry reveals what hurry conceals.",
+      "I stand in my workshop across centuries, yet I remain a student; the world is still my master.",
+      "I have learned that observation without hurry reveals what hurry conceals.",
       "I keep no wall between painting, anatomy, and mechanism — they are one conversation with nature.",
     ],
   };

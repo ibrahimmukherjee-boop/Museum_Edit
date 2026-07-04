@@ -26,7 +26,7 @@ export async function handleLeonardoRequest(body: LeonardoRequestBody) {
 
   const cortex = runLeonardoCortex(input);
   let reply = body.draft ?? cortex.reply;
-  let provider = cortex.provider;
+  let provider = body.draft ? "cortex+draft" : cortex.provider;
 
   if (body.polish !== false) {
     const zone = cortex.trace.zone;
@@ -37,9 +37,11 @@ export async function handleLeonardoRequest(body: LeonardoRequestBody) {
     );
     const corpusContext = buildPolishContext(snippets);
     const polished = await polishDraft(reply, LEONARDO_SYSTEM_PROMPT, corpusContext);
-    if (polished) {
+    if (polished?.text) {
       reply = sanitizeLeonardoReply(polished.text, input.question);
       provider = polishProviderLabel(polished.provider);
+    } else {
+      console.warn("[leonardo] GLM polish unavailable — returning CORTEX draft");
     }
   }
 

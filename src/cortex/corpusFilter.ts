@@ -16,11 +16,14 @@ export function isSafeCorpusChunk(source: string, content: string): boolean {
   return true;
 }
 
+const THIRD_PERSON_META = /\bLeonardo's\b|\bLeonardo is\b|\bLeonardo was\b|\bhe delight/i;
+
 export function isSafeForVisitorText(text: string): boolean {
   if (!text || text.length < 20) return false;
   if (BLOCKED_CONTENT.test(text)) return false;
   if (MODERN_ACADEMIC.test(text)) return false;
   if (/Personality:\s*DVNC/i.test(text)) return false;
+  if (THIRD_PERSON_META.test(text)) return false;
   return true;
 }
 
@@ -34,7 +37,8 @@ export function sanitizeLeonardoReply(text: string, question?: string): string {
     .replace(/Angela Myers[^.!?]*[.!?]/gi, "")
     .replace(/Polymaths Place[^.!?]*[.!?]/gi, "")
     .replace(/\b(give them a major shout out|my dissertation|going live|zoom call)\b[^.!?]*[.!?]/gi, "")
-    .replace(/\bmodern day polymaths?\b[^.!?]*[.!?]/gi, "")
+    .replace(/\bIn my notebooks I saw that Leonardo's[^.!?]*[.!?]/gi, "")
+    .replace(/\bLeonardo's humour[^.!?]*[.!?]/gi, "")
     .replace(/\s+/g, " ")
     .trim();
 

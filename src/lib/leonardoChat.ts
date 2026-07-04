@@ -1,6 +1,5 @@
 import { runLeonardoCortex } from "../cortex/index";
 import { sanitizeLeonardoReply } from "../cortex/corpusFilter";
-import { localLlmReady, polishWithLocalLlm, resolveLocalModel } from "../cortex/localLlm";
 import { demoLeonardoReply } from "./demoResponses";
 import { loadSettings } from "./settings";
 import { getSession } from "./auth";
@@ -12,12 +11,17 @@ export interface AskLeonardoOpts {
   history?: { role: "user" | "assistant"; content: string }[];
   folioContext?: { title: string; body: string; domain?: LeonardoZone };
   hotspotLabel?: string;
-  /** When true, return CORTEX instantly — no API/SLM wait (Atelier kiosk). */
+  /** When true, skip GLM polish (kiosk fast path). */
   instant?: boolean;
   useLlmPolish?: boolean;
 }
 
-const POLISH_BUDGET_MS = 28_000;
+const POLISH_BUDGET_MS = 45_000;
+
+function isLocalDevHost(): boolean {
+  if (typeof window === "undefined") return false;
+  return /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname);
+}
 
 function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
   return Promise.race([
@@ -27,8 +31,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
 }
 
 /**
- * CORTEX-first pipeline — instant by default for museum kiosks & GitHub Pages.
- * SLM/API polish only when explicitly requested and not in instant mode.
+ * CORTEX draft → server GLM polish (EC2). Browser never calls localhost Ollama in production.
  */
 export async function askLeonardo(opts: AskLeonardoOpts): Promise<{ reply: string; provider: string }> {
   const session = getSession();
@@ -49,36 +52,15 @@ export async function askLeonardo(opts: AskLeonardoOpts): Promise<{ reply: strin
     hotspotLabel: opts.hotspotLabel,
   });
 
-  const reply = sanitizeLeonardoReply(cortex.reply || demoLeonardoReply(opts.question), opts.question);
-  const provider = cortex.provider;
+  const draft = sanitizeLeonardoReply(cortex.reply || demoLeonardoReply(opts.question), opts.question);
 
-  // Kiosk instant mode — skip cloud polish only when explicitly requested.
   if (opts.instant === true) {
-    return { reply, provider };
+    return { reply: draft, provider: cortex.provider };
   }
 
-  if (settings.useLocalModel && opts.useLlmPolish) {
-    const ready = await withTimeout(localLlmReady({ baseUrl: settings.localModelUrl }), 400, false);
-    if (ready) {
-      const model =
-        (await withTimeout(resolveLocalModel(settings.localModelName, settings.localModelUrl), 400, null)) ??
-        settings.localModelName;
-      const polished = await withTimeout(
-        polishWithLocalLlm(reply, opts.question, {
-          baseUrl: settings.localModelUrl,
-          model,
-          folioContext: opts.folioContext,
-          hotspotLabel: opts.hotspotLabel,
-          history: opts.history,
-        }),
-        POLISH_BUDGET_MS,
-        null,
-      );
-      if (polished) return { reply: polished, provider: `cortex+${model}` };
-    }
-  }
+  const wantPolish = opts.useLlmPolish !== false;
 
-  if (opts.useLlmPolish) {
+  if (wantPolish) {
     try {
       const res = await withTimeout(
         fetch("/api/leonardo", {
@@ -91,7 +73,7 @@ export async function askLeonardo(opts: AskLeonardoOpts): Promise<{ reply: strin
             hotspotLabel: opts.hotspotLabel,
             memory,
             polish: true,
-            draft: reply,
+            draft,
           }),
         }),
         POLISH_BUDGET_MS,
@@ -99,19 +81,46 @@ export async function askLeonardo(opts: AskLeonardoOpts): Promise<{ reply: strin
       );
       if (res?.ok) {
         const data = (await res.json()) as { reply?: string; provider?: string };
-        if (data.reply) {
+        if (data.reply?.trim()) {
           return {
             reply: sanitizeLeonardoReply(data.reply, opts.question),
-            provider: data.provider ?? "cortex+llm",
+            provider: data.provider ?? "cortex+glm-5.2:cloud",
           };
         }
       }
     } catch {
-      /* cortex stands */
+      /* fall through to draft */
     }
   }
 
-  return { reply, provider };
+  if (wantPolish && isLocalDevHost() && settings.useLocalModel) {
+    const { localLlmReady, polishWithLocalLlm, resolveLocalModel } = await import("../cortex/localLlm");
+    const ready = await withTimeout(localLlmReady({ baseUrl: settings.localModelUrl }), 800, false);
+    if (ready) {
+      const model =
+        (await withTimeout(resolveLocalModel(settings.localModelName, settings.localModelUrl), 800, null)) ??
+        settings.localModelName;
+      const polished = await withTimeout(
+        polishWithLocalLlm(draft, opts.question, {
+          baseUrl: settings.localModelUrl,
+          model,
+          folioContext: opts.folioContext,
+          hotspotLabel: opts.hotspotLabel,
+          history: opts.history,
+        }),
+        POLISH_BUDGET_MS,
+        null,
+      );
+      if (polished) {
+        return {
+          reply: sanitizeLeonardoReply(polished, opts.question),
+          provider: `cortex+${model}`,
+        };
+      }
+    }
+  }
+
+  return { reply: draft, provider: cortex.provider };
 }
 
 export { LEONARDO_SYSTEM_PROMPT };

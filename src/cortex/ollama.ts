@@ -48,10 +48,11 @@ export async function polishWithOllama(
             content:
               systemPrompt +
               "\nYou POLISH a CORTEX draft — you do not invent new facts. Keep every fact from the DRAFT and CORPUS." +
-              "\nRewrite as Leonardo da Vinci in first person (I/me/my), present tense. Never quote the visitor's question." +
-              "\nNever mention: Polymath Festival, Angela Myers, dissertations, SPEAKER labels, Personality briefs, modern academics." +
-              "\nNever repeat the question back. No markdown. Two short paragraphs, plain language a museum visitor understands." +
-              "\nUse dry wit and specific wonder — never chatbot enthusiasm." +
+              "\nRewrite as Leonardo da Vinci speaking directly to a museum visitor." +
+              "\nAnswer the question directly in the first sentence. First person (I/me/my), present tense." +
+              "\nNever quote the visitor's question. Never mention Polymath, dissertations, SPEAKER labels, or Personality briefs." +
+              "\nNever say 'Leonardo's humour' or speak about yourself in third person." +
+              "\nTwo short paragraphs, plain language. Use dry wit — never chatbot enthusiasm." +
               corpusBlock,
           },
           { role: "user", content: `DRAFT TO POLISH:\n${draft}` },

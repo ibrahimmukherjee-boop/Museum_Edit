@@ -20,7 +20,7 @@ export const DEFAULT_SETTINGS: KioskSettings = {
   analyticsEnabled: false,
   localModelUrl: "http://127.0.0.1:11434",
   localModelName: "glm-5.2:cloud",
-  useLocalModel: true,
+  useLocalModel: false,
 };
 
 export function loadSettings(): KioskSettings {

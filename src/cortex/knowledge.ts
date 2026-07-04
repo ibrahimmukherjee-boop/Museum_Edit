@@ -104,6 +104,7 @@ export function extractFacts(snippets: { content: string; title: string }[]): Co
   const facts: CortexFact[] = [];
   for (const s of snippets) {
     if (!isSafeCorpusChunk(s.title, s.content)) continue;
+    if (/\bLeonardo's\b/i.test(s.content)) continue;
     const sentences = s.content.split(/[.!?]+/).map((x) => x.trim()).filter(Boolean);
     for (const sent of sentences.slice(0, 2)) {
       if (sent.length > 120 || !/\b(is|are|was|were|means|teaches|shows)\b/i.test(sent)) continue;
