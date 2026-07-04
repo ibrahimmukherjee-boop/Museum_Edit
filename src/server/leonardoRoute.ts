@@ -39,7 +39,7 @@ export async function handleLeonardoRequest(body: LeonardoRequestBody) {
     const polished = await polishDraft(reply, LEONARDO_SYSTEM_PROMPT, corpusContext);
     if (polished?.text) {
       reply = sanitizeLeonardoReply(polished.text, input.question);
-      provider = polishProviderLabel(polished.provider);
+      provider = polishProviderLabel(polished.provider, polished.model);
     } else {
       console.warn("[leonardo] GLM polish unavailable — returning CORTEX draft");
     }

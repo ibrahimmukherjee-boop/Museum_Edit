@@ -1,18 +1,24 @@
-import { polishWithOllama } from "./ollama";
+import { polishWithOllama, getActiveOllamaModel } from "./ollama";
 import { polishWithLlm } from "./llmCloud";
 
 export type PolishProvider = "ollama" | "groq" | "huggingface" | "none";
 
-/** Polish CORTEX draft via glm-5.2:cloud (Ollama) — voice only; facts from RAG draft. */
+export interface PolishResult {
+  text: string;
+  provider: PolishProvider;
+  model?: string;
+}
+
+/** Polish CORTEX draft via Ollama (local SLM) or optional cloud fallback. */
 export async function polishDraft(
   draft: string,
   systemPrompt: string,
   corpusContext?: string,
-): Promise<{ text: string; provider: PolishProvider } | null> {
+): Promise<PolishResult | null> {
   const useOllama = process.env.OLLAMA_BASE_URL || process.env.OLLAMA_MODEL || process.env.USE_OLLAMA === "1";
   if (useOllama) {
     const ollama = await polishWithOllama(draft, systemPrompt, { corpusContext });
-    if (ollama) return { text: ollama, provider: "ollama" };
+    if (ollama) return { text: ollama.text, provider: "ollama", model: ollama.model };
   }
 
   const groqKey = process.env.GROQ_API_KEY;
@@ -30,9 +36,9 @@ export async function polishDraft(
   return null;
 }
 
-export function polishProviderLabel(p: PolishProvider): string {
-  const model = process.env.OLLAMA_MODEL ?? "glm-5.2:cloud";
-  if (p === "ollama") return `cortex+${model}`;
+export function polishProviderLabel(p: PolishProvider, model?: string): string {
+  const resolved = model ?? getActiveOllamaModel() ?? process.env.OLLAMA_MODEL ?? "qwen2.5:3b";
+  if (p === "ollama") return `cortex+${resolved}`;
   if (p === "groq") return "cortex+groq";
   if (p === "huggingface") return "cortex+hf";
   return "cortex";

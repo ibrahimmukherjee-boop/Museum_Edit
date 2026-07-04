@@ -3,7 +3,7 @@ import { createServer } from "node:http";
 import { readFile } from "node:fs";
 import { join, extname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { ensureOllamaModel, ollamaReady } from "../src/cortex/ollama";
+import { ensureOllamaModel, ollamaReady, getActiveOllamaModel } from "../src/cortex/ollama";
 import { handleLeonardoRequest } from "../src/server/leonardoRoute";
 
 const root = join(fileURLToPath(new URL(".", import.meta.url)), "..", "dist");
@@ -47,7 +47,13 @@ createServer(async (req, res) => {
   if (req.method === "GET" && path === "/api/health") {
     const ollama = await ollamaReady();
     res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ ok: true, ollama }));
+    res.end(
+      JSON.stringify({
+        ok: true,
+        ollama,
+        model: getActiveOllamaModel() ?? process.env.OLLAMA_MODEL ?? "qwen2.5:3b",
+      }),
+    );
     return;
   }
 
