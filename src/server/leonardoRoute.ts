@@ -1,5 +1,5 @@
 import { runLeonardoCortex } from "../cortex/index";
-import { buildPolishContext, retrieveKnowledge } from "../cortex/knowledge";
+import { buildLeonardoPolishContext } from "../cortex/polishContext";
 import { sanitizeLeonardoReply } from "../cortex/corpusFilter";
 import { polishDraft, polishProviderLabel } from "../cortex/polish";
 import { LEONARDO_SYSTEM_PROMPT } from "../lib/prompt";
@@ -30,18 +30,18 @@ export async function handleLeonardoRequest(body: LeonardoRequestBody) {
 
   if (body.polish !== false) {
     const zone = cortex.trace.zone;
-    const snippets = retrieveKnowledge(
+    const corpusContext = buildLeonardoPolishContext(input.question, zone, 6);
+    const polished = await polishDraft(
+      reply,
+      LEONARDO_SYSTEM_PROMPT,
+      corpusContext,
       input.question,
-      zone === "general" ? undefined : zone,
-      6,
     );
-    const corpusContext = buildPolishContext(snippets);
-    const polished = await polishDraft(reply, LEONARDO_SYSTEM_PROMPT, corpusContext);
     if (polished?.text) {
       reply = sanitizeLeonardoReply(polished.text, input.question);
       provider = polishProviderLabel(polished.provider, polished.model);
     } else {
-      console.warn("[leonardo] GLM polish unavailable — returning CORTEX draft");
+      console.warn("[leonardo] LLM polish unavailable — returning CORTEX draft");
     }
   }
 

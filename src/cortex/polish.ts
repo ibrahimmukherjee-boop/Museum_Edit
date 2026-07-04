@@ -14,10 +14,11 @@ export async function polishDraft(
   draft: string,
   systemPrompt: string,
   corpusContext?: string,
+  question?: string,
 ): Promise<PolishResult | null> {
   const useOllama = process.env.OLLAMA_BASE_URL || process.env.OLLAMA_MODEL || process.env.USE_OLLAMA === "1";
   if (useOllama) {
-    const ollama = await polishWithOllama(draft, systemPrompt, { corpusContext });
+    const ollama = await polishWithOllama(draft, systemPrompt, { corpusContext, question });
     if (ollama) return { text: ollama.text, provider: "ollama", model: ollama.model };
   }
 

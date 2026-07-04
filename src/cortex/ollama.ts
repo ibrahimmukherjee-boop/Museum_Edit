@@ -4,6 +4,7 @@ export interface OllamaPolishOptions {
   model?: string;
   timeoutMs?: number;
   corpusContext?: string;
+  question?: string;
 }
 
 const DEFAULT_BASE = "http://127.0.0.1:11434";
@@ -99,7 +100,11 @@ export async function polishWithOllama(
   const timeoutMs = opts.timeoutMs ?? 120_000;
 
   const corpusBlock = opts.corpusContext
-    ? `\nCORPUS (preserve these facts in your rewrite):\n${opts.corpusContext}\n`
+    ? `\nCORPUS (personality + facts — preserve meaning, never quote labels or meta-text):\n${opts.corpusContext}\n`
+    : "";
+
+  const questionBlock = opts.question?.trim()
+    ? `\nThe visitor asks: "${opts.question.trim()}"\nAnswer this question directly in your first sentence.\n`
     : "";
 
   const systemContent =
@@ -110,7 +115,8 @@ export async function polishWithOllama(
     "\nNever quote the visitor's question. Never mention Polymath, dissertations, SPEAKER labels, or Personality briefs." +
     "\nNever say 'Leonardo's humour' or speak about yourself in third person." +
     "\nTwo short paragraphs, plain language. Use dry wit — never chatbot enthusiasm." +
-    corpusBlock;
+    corpusBlock +
+    questionBlock;
 
   const installed = await listInstalledModels(base);
   const candidates = resolveCandidate(preferred, installed);

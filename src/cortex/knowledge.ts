@@ -3,6 +3,7 @@ import { PERSONA_VOICE_ANCHORS } from "../data/personaVoice";
 import { TRAINING_CHUNKS } from "../data/trainingCorpus";
 import { BM25 } from "./bm25";
 import { isSafeCorpusChunk, polishContextFromSnippets } from "./corpusFilter";
+import { isSafePersonalityChunk } from "./personalityLayer";
 import type { CortexFact } from "./types";
 
 export interface KnowledgeSnippet {
@@ -40,6 +41,7 @@ function ensureTrainingIndex(): BM25 {
   trainingIndex = new BM25();
   TRAINING_CHUNKS.forEach((c, i) => {
     if (!isSafeCorpusChunk(c.source, c.text)) return;
+    if (c.source.startsWith("Personality:") && !isSafePersonalityChunk(c.source, c.text)) return;
     const kind = c.source.startsWith("Personality:") ? "personality" : "training";
     trainingIndex!.add(`train-${i}`, c.text, {
       title: c.source,
@@ -71,6 +73,7 @@ export function retrieveKnowledge(query: string, domain?: string, topK = 6): Kno
     .search(query, topK + 2)
     .filter((h) => !domain || h.meta.domain === domain || h.meta.domain === "general")
     .filter((h) => h.meta.kind === "personality")
+    .filter((h) => isSafePersonalityChunk(h.meta.title, h.text))
     .map((h) => ({
       title: h.meta.title,
       content: h.text,
@@ -104,6 +107,7 @@ export function extractFacts(snippets: { content: string; title: string }[]): Co
   const facts: CortexFact[] = [];
   for (const s of snippets) {
     if (!isSafeCorpusChunk(s.title, s.content)) continue;
+    if (s.kind === "personality" && !isSafePersonalityChunk(s.title, s.content)) continue;
     if (/\bLeonardo's\b/i.test(s.content)) continue;
     const sentences = s.content.split(/[.!?]+/).map((x) => x.trim()).filter(Boolean);
     for (const sent of sentences.slice(0, 2)) {

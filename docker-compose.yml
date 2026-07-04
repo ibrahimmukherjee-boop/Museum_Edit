@@ -1,4 +1,4 @@
-# Production: museum app + Ollama gateway for glm-5.2:cloud polish (CORTEX drafts, not generation).
+# Production: museum app + Ollama local SLM (qwen2.5:3b) for CORTEX draft polish.
 services:
   ollama:
     image: ollama/ollama:latest

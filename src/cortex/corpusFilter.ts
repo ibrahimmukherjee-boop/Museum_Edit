@@ -2,7 +2,7 @@
 const BLOCKED_SOURCE = /polymath festival|masterclass.*transcription|transcription for|speaker_\d+/i;
 
 const BLOCKED_CONTENT =
-  /\b(SPEAKER_\d+|Transcription for|Angela Myers|Polymaths Place|dissertation|shout out|going live|zoom call|gender quota|Wakas|Wakat|GMT2021|Personality:\s*DVNC|Agent Prompts brief|CONFIDENTIAL|Polymath Festival:\s*transcription)\b/i;
+  /\b(SPEAKER_\d+|Transcription for|Angela Myers|Polymaths Place|dissertation|shout out|going live|zoom call|gender quota|Wakas|Wakat|GMT2021|Personality:\s*DVNC|Agent Prompts brief|CONFIDENTIAL|Polymath Festival:\s*transcription|DVNC\.ai Leonardo Museum|Complete Brief For Ibrahim|How to Use This Document|BEHAVIOURAL INSTRUCTION|mental models as simultaneous)\b/i;
 
 const MODERN_ACADEMIC =
   /\b(polymath festival|modern day polymath|learning strategies|edtech|AI-powered|machine learning|dissertation|academic|webinar|podcast)\b/i;
@@ -16,7 +16,8 @@ export function isSafeCorpusChunk(source: string, content: string): boolean {
   return true;
 }
 
-const THIRD_PERSON_META = /\bLeonardo's\b|\bLeonardo is\b|\bLeonardo was\b|\bhe delight/i;
+const THIRD_PERSON_META =
+  /\bLeonardo's\b|\bLeonardo is\b|\bLeonardo was\b|\bThe actual Leonardo\b|\bHe served Cesare\b|\bHis humour\b|\bhe delight/i;
 
 export function isSafeForVisitorText(text: string): boolean {
   if (!text || text.length < 20) return false;
@@ -37,8 +38,8 @@ export function sanitizeLeonardoReply(text: string, question?: string): string {
     .replace(/Angela Myers[^.!?]*[.!?]/gi, "")
     .replace(/Polymaths Place[^.!?]*[.!?]/gi, "")
     .replace(/\b(give them a major shout out|my dissertation|going live|zoom call)\b[^.!?]*[.!?]/gi, "")
-    .replace(/\bIn my notebooks I saw that Leonardo's[^.!?]*[.!?]/gi, "")
-    .replace(/\bLeonardo's humour[^.!?]*[.!?]/gi, "")
+    .replace(/\bIn my notebooks I saw that[^.!?]*[.!?]/gi, "")
+    .replace(/\bAccording to (the|my) (brief|notebooks I saw)[^.!?]*[.!?]/gi, "")
     .replace(/\s+/g, " ")
     .trim();
 

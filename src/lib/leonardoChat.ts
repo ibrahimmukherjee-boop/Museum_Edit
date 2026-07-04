@@ -16,7 +16,7 @@ export interface AskLeonardoOpts {
   useLlmPolish?: boolean;
 }
 
-const POLISH_BUDGET_MS = 45_000;
+const POLISH_BUDGET_MS = 90_000;
 
 function isLocalDevHost(): boolean {
   if (typeof window === "undefined") return false;
@@ -84,7 +84,7 @@ export async function askLeonardo(opts: AskLeonardoOpts): Promise<{ reply: strin
         if (data.reply?.trim()) {
           return {
             reply: sanitizeLeonardoReply(data.reply, opts.question),
-            provider: data.provider ?? "cortex+glm-5.2:cloud",
+            provider: data.provider ?? "cortex+qwen2.5:3b",
           };
         }
       }
