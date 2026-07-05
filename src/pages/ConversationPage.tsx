@@ -77,12 +77,30 @@ export default function ConversationPage() {
 
     let reply: string;
     let provider = "cortex";
+    const aid = `a-${Date.now()}`;
+    let streamTurnAdded = false;
+
     try {
       if (settings.devMode) {
         reply = demoLeonardoReply(t);
       } else {
         const history = nextTurns.map((m) => ({ role: m.role, content: m.content }));
-        const result = await askLeonardo({ question: t, history });
+        const result = await askLeonardo({
+          question: t,
+          history,
+          onSlmStart: () => {
+            streamTurnAdded = true;
+            setLoading(false);
+            setTurns((prev) => [...prev, { id: aid, role: "assistant", content: "" }]);
+          },
+          onToken: (chunk) => {
+            setTurns((prev) =>
+              prev.map((turn) =>
+                turn.id === aid ? { ...turn, content: turn.content + chunk } : turn,
+              ),
+            );
+          },
+        });
         reply = result.reply || demoLeonardoReply(t);
         provider = result.provider;
         setLastProvider(provider);
@@ -92,9 +110,14 @@ export default function ConversationPage() {
     }
 
     reply = stripMuseumNavMarkers(reply);
-    const aid = `a-${Date.now()}`;
-    setTurns((prev) => [...prev, { id: aid, role: "assistant", content: reply }]);
-    setTypingId(aid);
+    if (!streamTurnAdded) {
+      setTurns((prev) => [...prev, { id: aid, role: "assistant", content: reply }]);
+      setTypingId(aid);
+    } else {
+      setTurns((prev) =>
+        prev.map((turn) => (turn.id === aid ? { ...turn, content: reply } : turn)),
+      );
+    }
     setLoading(false);
 
     // Surface provider in console for debugging
@@ -178,7 +201,7 @@ export default function ConversationPage() {
           <GlassPanel variant="cream" className="max-w-[92%] p-4">
             <span className="block font-[Cinzel] text-[0.65rem] tracking-[0.18em] text-[#2a2218]/45 uppercase">Leonardo</span>
             <p className="mt-1 font-serif text-base italic text-[#2a2218]/55">
-              Leonardo is composing your answer…
+              Leonardo is preparing your answer…
             </p>
           </GlassPanel>
         )}

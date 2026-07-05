@@ -167,14 +167,14 @@ async function chatOnce(
 export async function* polishWithOllamaStream(
   draft: string,
   systemPrompt: string,
-  opts: OllamaPolishOptions = {},
+  opts: OllamaPolishOptions & { strict?: boolean } = {},
 ): AsyncGenerator<string, { model: string } | null, unknown> {
   const base = baseUrl(opts);
   const preferred = opts.model ?? process.env.OLLAMA_MODEL ?? DEFAULT_MODEL;
   const installed = await listInstalledModels(base);
   const candidates = resolveCandidate(preferred, installed);
   const systemContent = systemPrompt + "\n" + polishSystemSuffix(opts.corpusContext, opts.question);
-  const userContent = polishUserMessage(draft, opts.question);
+  const userContent = polishUserMessage(draft, opts.question, opts.strict);
 
   for (const model of candidates) {
     try {

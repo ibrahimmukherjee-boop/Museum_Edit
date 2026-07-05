@@ -69,7 +69,10 @@ export default function AtelierRoomPage() {
       const hotspotLabel = pendingHotspotLabel.current;
       pendingHotspotLabel.current = undefined;
 
+      const aid = `a-${Date.now()}`;
+      let streamTurnAdded = false;
       let reply = "";
+
       try {
         const result = await askLeonardo({
           question: t,
@@ -80,6 +83,25 @@ export default function AtelierRoomPage() {
             domain: folioTarget.domain,
           },
           hotspotLabel,
+          onSlmStart: () => {
+            streamTurnAdded = true;
+            setLoading(false);
+            setThreads((p) => ({
+              ...p,
+              [folioTarget.id]: [
+                ...(p[folioTarget.id] ?? nextTurns),
+                { id: aid, role: "assistant", content: "" },
+              ],
+            }));
+          },
+          onToken: (chunk) => {
+            setThreads((p) => ({
+              ...p,
+              [folioTarget.id]: (p[folioTarget.id] ?? []).map((turn) =>
+                turn.id === aid ? { ...turn, content: turn.content + chunk } : turn,
+              ),
+            }));
+          },
         });
         reply = stripMuseumNavMarkers(result.reply?.trim() || demoLeonardoReply(t));
         setLastProvider(result.provider);
@@ -87,12 +109,20 @@ export default function AtelierRoomPage() {
         reply = stripMuseumNavMarkers(demoLeonardoReply(t));
       }
 
-      const aid = `a-${Date.now()}`;
-      setThreads((p) => ({
-        ...p,
-        [folioTarget.id]: [...(p[folioTarget.id] ?? nextTurns), { id: aid, role: "assistant", content: reply }],
-      }));
-      setTypingId(aid);
+      if (!streamTurnAdded) {
+        setThreads((p) => ({
+          ...p,
+          [folioTarget.id]: [...(p[folioTarget.id] ?? nextTurns), { id: aid, role: "assistant", content: reply }],
+        }));
+        setTypingId(aid);
+      } else {
+        setThreads((p) => ({
+          ...p,
+          [folioTarget.id]: (p[folioTarget.id] ?? []).map((turn) =>
+            turn.id === aid ? { ...turn, content: reply } : turn,
+          ),
+        }));
+      }
       setLoading(false);
       inputRef.current?.focus();
     },

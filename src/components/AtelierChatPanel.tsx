@@ -104,7 +104,7 @@ export function AtelierChatPanel({
                 <span className="block font-[Cinzel] text-[0.55rem] tracking-[0.14em] text-[#2a2218]/38 uppercase">
                   Leonardo
                 </span>
-                <p className="mt-1 font-serif text-base italic text-[#2a2218]/55">Leonardo is thinking…</p>
+                <p className="mt-1 font-serif text-base italic text-[#2a2218]/55">Leonardo is preparing…</p>
               </GlassPanel>
             ) : null}
             {showStarters && onStarter ? (

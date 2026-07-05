@@ -4,7 +4,7 @@ import { readFile } from "node:fs";
 import { join, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ensureOllamaModel, ollamaReady, getActiveOllamaModel, warmupOllamaModel, startOllamaKeepalive } from "../src/cortex/ollama";
-import { handleLeonardoRequest } from "../src/server/leonardoRoute";
+import { handleLeonardoRequest, handleLeonardoStream } from "../src/server/leonardoRoute";
 
 const root = join(fileURLToPath(new URL(".", import.meta.url)), "..", "dist");
 const port = Number(process.env.PORT ?? 8080);
@@ -59,6 +59,33 @@ createServer(async (req, res) => {
         corpusModel: "leonardo-museum",
       }),
     );
+    return;
+  }
+
+  if (req.method === "POST" && path === "/api/leonardo/stream") {
+    const chunks: Buffer[] = [];
+    for await (const chunk of req) chunks.push(chunk as Buffer);
+    let body: Parameters<typeof handleLeonardoStream>[0];
+    try {
+      body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    } catch {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Invalid JSON" }));
+      return;
+    }
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    });
+    try {
+      for await (const ev of handleLeonardoStream(body)) {
+        res.write(`data: ${JSON.stringify(ev)}\n\n`);
+      }
+    } catch (e) {
+      res.write(`data: ${JSON.stringify({ type: "error", message: String(e) })}\n\n`);
+    }
+    res.end();
     return;
   }
 
