@@ -13,6 +13,8 @@ export type LeonardoRequestBody = CortexInput & {
   memory?: CortexInput["memory"];
 };
 
+const SLM_FALLBACK_PROVIDER = "cortex+leonardo-museum:fallback";
+
 export type LeonardoStreamEvent =
   | { type: "slm_start" }
   | { type: "token"; text: string }
@@ -100,7 +102,7 @@ export async function handleLeonardoRequest(body: LeonardoRequestBody) {
     } else {
       console.error("[leonardo] SLM could not preserve CORTEX facts — using validated draft");
       reply = draft;
-      provider = "cortex+slm-fallback";
+      provider = SLM_FALLBACK_PROVIDER;
     }
   }
 
@@ -152,7 +154,7 @@ export async function* handleLeonardoStream(body: LeonardoRequestBody): AsyncGen
 
       if (hasPersonalityLeak(streamed)) {
         console.warn("[leonardo] personality leak in stream — CORTEX fallback");
-        yield finish(draft, "cortex+slm-fallback");
+        yield finish(draft, SLM_FALLBACK_PROVIDER);
         return;
       }
 
@@ -160,7 +162,7 @@ export async function* handleLeonardoStream(body: LeonardoRequestBody): AsyncGen
 
       if (emitted.length === 0 && !isValidPolish(draft, streamed, input.question)) {
         if (streamed.length > 120) {
-          yield finish(draft, "cortex+slm-fallback");
+          yield finish(draft, SLM_FALLBACK_PROVIDER);
           return;
         }
         continue;
@@ -174,7 +176,7 @@ export async function* handleLeonardoStream(body: LeonardoRequestBody): AsyncGen
     }
   } catch (e) {
     console.warn("[leonardo] SLM stream failed:", e);
-    yield finish(draft, "cortex+slm-fallback");
+    yield finish(draft, SLM_FALLBACK_PROVIDER);
     return;
   }
 
@@ -182,7 +184,7 @@ export async function* handleLeonardoStream(body: LeonardoRequestBody): AsyncGen
   const sanitized = sanitizeLeonardoReply(streamed, input.question);
   const valid = isValidPolish(draft, sanitized, input.question);
   const reply = valid ? sanitized : draft;
-  const provider = valid ? `cortex+${model}` : "cortex+slm-fallback";
+  const provider = valid ? `cortex+${model}` : SLM_FALLBACK_PROVIDER;
 
   if (!valid && streamed.length > 0) {
     console.warn("[leonardo] streamed SLM failed validation — using CORTEX draft");
