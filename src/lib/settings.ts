@@ -9,7 +9,7 @@ export interface KioskSettings {
   useLocalModel: boolean;
 }
 
-const KEY = "leonardo.settings.v1";
+const KEY = "leonardo.settings.v2";
 
 export const DEFAULT_SETTINGS: KioskSettings = {
   devMode: false,
@@ -26,7 +26,12 @@ export function loadSettings(): KioskSettings {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return { ...DEFAULT_SETTINGS };
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+    const merged = { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+    if (import.meta.env.PROD) {
+      merged.devMode = false;
+      merged.useLocalModel = false;
+    }
+    return merged;
   } catch {
     return { ...DEFAULT_SETTINGS };
   }

@@ -69,7 +69,8 @@ function polishUserMessage(draft: string, question?: string, strict = false): st
 function polishSystemSuffix(corpusContext?: string, question?: string): string {
   const parts = [
     "You POLISH a CORTEX draft — do not invent facts. First person, present tense.",
-    "Answer directly in sentence one. Never say Leonardo's humour or speak in third person.",
+    "Answer the visitor's question in sentence one. Keep every fact from the DRAFT.",
+    "Never describe your humour style, never say humour is dry, never speak in third person.",
   ];
   if (corpusContext) parts.push(`Extra context:\n${corpusContext.slice(0, 600)}`);
   if (question) parts.push(`Question: ${question}`);
@@ -93,14 +94,42 @@ async function pullModel(base: string, name: string): Promise<boolean> {
   }
 }
 
-/** Create leonardo-museum from qwen2.5:0.5b + corpus SYSTEM (runs on EC2 at boot). */
+/** Create leonardo-museum from qwen2.5:1.5b + corpus SYSTEM (runs on EC2 at boot). */
 export async function ensureLeonardoCorpusModel(baseUrlArg?: string): Promise<string> {
   const base = (baseUrlArg ?? process.env.OLLAMA_BASE_URL ?? DEFAULT_BASE).replace(/\/$/, "");
+  const revision = process.env.LEONARDO_MODEL_REVISION ?? "2";
+  const { readFileSync, writeFileSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const revFile = join(process.cwd(), ".leonardo-model-revision");
+
+  let storedRev = "";
+  try {
+    storedRev = readFileSync(revFile, "utf8").trim();
+  } catch {
+    /* first boot */
+  }
+
   const installed = await listInstalledModels(base);
-  const hasLeonardo = installed.some((m) => m.startsWith(LEONARDO_OLLAMA_MODEL));
-  if (hasLeonardo) {
-    activeModel = installed.find((m) => m.startsWith(LEONARDO_OLLAMA_MODEL))!;
+  const leonardoTag = installed.find((m) => m.startsWith(LEONARDO_OLLAMA_MODEL));
+  const hasLeonardo = Boolean(leonardoTag);
+
+  if (hasLeonardo && storedRev === revision) {
+    activeModel = leonardoTag!;
     return activeModel;
+  }
+
+  if (hasLeonardo) {
+    console.log(`[ollama] rebuilding ${LEONARDO_OLLAMA_MODEL} (revision ${revision})…`);
+    try {
+      await fetch(`${base}/api/delete`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: leonardoTag }),
+        signal: AbortSignal.timeout(60_000),
+      });
+    } catch {
+      /* continue to create */
+    }
   }
 
   const baseName = LEONARDO_BASE_MODEL;
@@ -124,7 +153,8 @@ export async function ensureLeonardoCorpusModel(baseUrlArg?: string): Promise<st
   }
   await create.json();
   activeModel = LEONARDO_OLLAMA_MODEL;
-  console.log(`[ollama] corpus model ready: ${LEONARDO_OLLAMA_MODEL}`);
+  writeFileSync(revFile, revision);
+  console.log(`[ollama] corpus model ready: ${LEONARDO_OLLAMA_MODEL} (rev ${revision})`);
   return LEONARDO_OLLAMA_MODEL;
 }
 

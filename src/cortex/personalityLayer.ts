@@ -1,7 +1,7 @@
 import { PERSONA_VOICE_ANCHORS } from "../data/personaVoice";
 import { TRAINING_CHUNKS } from "../data/trainingCorpus";
 import { BM25 } from "./bm25";
-import { isSafeCorpusChunk, isSafeForVisitorText } from "./corpusFilter";
+import { hasPersonalityLeak, isSafeCorpusChunk, isSafeForVisitorText } from "./corpusFilter";
 
 /** Meta / implementation text from Personality briefs — never send to the LLM or visitor. */
 const PERSONALITY_META =
@@ -51,6 +51,7 @@ export function buildPersonalityContext(query: string, maxChars = 900): string {
   let used = 0;
 
   for (const anchor of PERSONA_VOICE_ANCHORS) {
+    if (hasPersonalityLeak(anchor.content)) continue;
     const line = anchor.content.slice(0, 220);
     if (used + line.length > maxChars) break;
     blocks.push(line);

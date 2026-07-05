@@ -1,5 +1,9 @@
-/** Ensure SLM polish preserved CORTEX facts from the draft. */
+import { hasPersonalityLeak } from "./corpusFilter";
+
+/** Ensure SLM polish preserved CORTEX facts and has no personality leaks. */
 export function polishPreservesDraft(draft: string, polished: string, question: string): boolean {
+  if (hasPersonalityLeak(polished)) return false;
+
   const p = polished.toLowerCase();
   if (p.length < 40) return false;
 
@@ -24,12 +28,14 @@ function extractAnchors(text: string): string[] {
     [/michelangelo|buonarroti/, "michelangelo"],
     [/sistine/, "sistine"],
     [/ornithopter/, "ornithopter"],
+    [/flying machine|modern flying|flight|flying machines/, "fly"],
     [/saper vedere/, "see"],
     [/florence/, "florence"],
     [/vinci/, "vinci"],
     [/1452|fifteen fifty-two/, "1452"],
     [/louvre/, "louvre"],
     [/sfumato/, "sfumato"],
+    [/wing|air|bird/, "wing"],
     [/not mine|not my/, "not"],
     [/\bno\b.*\bnot\b|\bnot\b.*\bmy\b/, "not"],
   ];

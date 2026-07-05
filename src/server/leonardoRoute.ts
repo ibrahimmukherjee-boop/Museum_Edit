@@ -1,6 +1,6 @@
 import { runLeonardoCortex } from "../cortex/index";
 import { buildLeonardoPolishContext } from "../cortex/polishContext";
-import { sanitizeLeonardoReply } from "../cortex/corpusFilter";
+import { hasPersonalityLeak, isSafeForVisitorText, sanitizeLeonardoReply } from "../cortex/corpusFilter";
 import { polishDraft, polishProviderLabel } from "../cortex/polish";
 import { polishWithOllama, polishWithOllamaStream, getActiveOllamaModel } from "../cortex/ollama";
 import { polishPreservesDraft } from "../cortex/polishValidate";
@@ -19,6 +19,8 @@ export type LeonardoStreamEvent =
   | { type: "done"; reply: string; provider: string }
   | { type: "error"; message: string };
 
+const STREAM_GUARD_CHARS = 36;
+
 function buildInput(body: LeonardoRequestBody): CortexInput {
   return {
     question: body.question,
@@ -27,6 +29,15 @@ function buildInput(body: LeonardoRequestBody): CortexInput {
     folioContext: body.folioContext,
     hotspotLabel: body.hotspotLabel,
   };
+}
+
+function isValidPolish(draft: string, polished: string, question: string): boolean {
+  return (
+    polished.length > 40 &&
+    !hasPersonalityLeak(polished) &&
+    isSafeForVisitorText(polished) &&
+    polishPreservesDraft(draft, polished, question)
+  );
 }
 
 async function polishCortexDraft(
@@ -46,7 +57,7 @@ async function polishCortexDraft(
     );
     if (!polished?.text) continue;
     const text = sanitizeLeonardoReply(polished.text, question);
-    if (polishPreservesDraft(draft, text, question)) {
+    if (isValidPolish(draft, text, question)) {
       return {
         reply: text,
         provider: polishProviderLabel(polished.provider, polished.model),
@@ -62,7 +73,7 @@ async function polishCortexDraft(
   });
   if (last?.text) {
     const text = sanitizeLeonardoReply(last.text, question);
-    if (polishPreservesDraft(draft, text, question)) {
+    if (isValidPolish(draft, text, question)) {
       return { reply: text, provider: `cortex+${last.model}` };
     }
   }
@@ -103,7 +114,7 @@ export async function handleLeonardoRequest(body: LeonardoRequestBody) {
   };
 }
 
-/** CORTEX (sync) then stream SLM tokens as they are generated. */
+/** Stream SLM tokens — buffer briefly to block personality leaks before emitting. */
 export async function* handleLeonardoStream(body: LeonardoRequestBody): AsyncGenerator<LeonardoStreamEvent> {
   if (!body?.question?.trim()) {
     yield { type: "error", message: "No question" };
@@ -123,30 +134,59 @@ export async function* handleLeonardoStream(body: LeonardoRequestBody): AsyncGen
   yield { type: "slm_start" };
 
   let streamed = "";
+  let emitted = "";
+
+  const finish = (reply: string, provider: string) => {
+    return { type: "done" as const, reply, provider };
+  };
+
   try {
     const stream = polishWithOllamaStream(draft, LEONARDO_SYSTEM_PROMPT, {
       corpusContext,
       question: input.question,
+      strict: true,
     });
+
     for await (const tok of stream) {
       streamed += tok;
-      yield { type: "token", text: tok };
+
+      if (hasPersonalityLeak(streamed)) {
+        console.warn("[leonardo] personality leak in stream — CORTEX fallback");
+        yield finish(draft, "cortex+slm-fallback");
+        return;
+      }
+
+      if (emitted.length === 0 && streamed.length < STREAM_GUARD_CHARS) continue;
+
+      if (emitted.length === 0 && !isValidPolish(draft, streamed, input.question)) {
+        if (streamed.length > 120) {
+          yield finish(draft, "cortex+slm-fallback");
+          return;
+        }
+        continue;
+      }
+
+      const delta = streamed.slice(emitted.length);
+      if (delta) {
+        yield { type: "token", text: delta };
+        emitted = streamed;
+      }
     }
   } catch (e) {
     console.warn("[leonardo] SLM stream failed:", e);
-    yield { type: "done", reply: draft, provider: "cortex+slm-fallback" };
+    yield finish(draft, "cortex+slm-fallback");
     return;
   }
 
   const model = getActiveOllamaModel() ?? process.env.OLLAMA_MODEL ?? "leonardo-museum";
   const sanitized = sanitizeLeonardoReply(streamed, input.question);
-  const valid = streamed.length > 40 && polishPreservesDraft(draft, sanitized, input.question);
+  const valid = isValidPolish(draft, sanitized, input.question);
   const reply = valid ? sanitized : draft;
   const provider = valid ? `cortex+${model}` : "cortex+slm-fallback";
 
   if (!valid && streamed.length > 0) {
-    console.warn("[leonardo] streamed SLM failed validation — using CORTEX draft in done event");
+    console.warn("[leonardo] streamed SLM failed validation — using CORTEX draft");
   }
 
-  yield { type: "done", reply, provider };
+  yield finish(reply, provider);
 }

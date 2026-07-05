@@ -1,5 +1,6 @@
 import { PERSONA_VOICE_ANCHORS } from "../data/personaVoice";
 import { TRAINING_CHUNKS } from "../data/trainingCorpus";
+import { hasPersonalityLeak } from "./corpusFilter";
 import { isSafePersonalityChunk } from "./personalityLayer";
 import { LEONARDO_SYSTEM_PROMPT } from "../lib/prompt";
 
@@ -8,7 +9,9 @@ export const LEONARDO_BASE_MODEL = process.env.OLLAMA_BASE_MODEL ?? "qwen2.5:1.5
 
 /** Corpus + personality baked into Ollama SYSTEM (local “fine-tune” without GPU LoRA). */
 export function buildLeonardoCorpusSystemPrompt(maxChars = 2400): string {
-  const voice = PERSONA_VOICE_ANCHORS.map((a) => a.content).join("\n");
+  const voice = PERSONA_VOICE_ANCHORS.filter((a) => !hasPersonalityLeak(a.content))
+    .map((a) => a.content)
+    .join("\n");
   const brief = TRAINING_CHUNKS.filter(
     (c) => c.source.startsWith("Personality:") && isSafePersonalityChunk(c.source, c.text),
   )
