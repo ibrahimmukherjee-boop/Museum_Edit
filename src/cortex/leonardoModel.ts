@@ -33,3 +33,19 @@ export function buildLeonardoModelfile(baseModel = LEONARDO_BASE_MODEL): string 
     `SYSTEM """${system}"""`,
   ].join("\n");
 }
+
+/** Ollama /api/create body (REST API — not raw modelfile). */
+export function buildLeonardoCreatePayload(baseModel = LEONARDO_BASE_MODEL) {
+  return {
+    model: LEONARDO_OLLAMA_MODEL,
+    from: baseModel,
+    system: buildLeonardoCorpusSystemPrompt(),
+    parameters: {
+      temperature: 0.65,
+      num_predict: 120,
+      num_ctx: 1536,
+      top_p: 0.9,
+    },
+    stream: false,
+  };
+}

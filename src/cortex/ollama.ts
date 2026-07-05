@@ -1,5 +1,5 @@
 /** Self-hosted SLM — corpus-tuned leonardo-museum model via Ollama Modelfile. */
-import { buildLeonardoModelfile, LEONARDO_BASE_MODEL, LEONARDO_OLLAMA_MODEL } from "./leonardoModel";
+import { buildLeonardoCreatePayload, LEONARDO_BASE_MODEL, LEONARDO_OLLAMA_MODEL } from "./leonardoModel";
 
 export interface OllamaPolishOptions {
   baseUrl?: string;
@@ -108,12 +108,12 @@ export async function ensureLeonardoCorpusModel(baseUrlArg?: string): Promise<st
     await pullModel(base, baseName);
   }
 
-  const modelfile = buildLeonardoModelfile(baseName);
+  const modelfile = buildLeonardoCreatePayload(baseName);
   console.log(`[ollama] creating corpus-tuned ${LEONARDO_OLLAMA_MODEL} from ${baseName}…`);
   const create = await fetch(`${base}/api/create`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name: LEONARDO_OLLAMA_MODEL, modelfile, stream: false }),
+    body: JSON.stringify(modelfile),
     signal: AbortSignal.timeout(300_000),
   });
   if (!create.ok) {
