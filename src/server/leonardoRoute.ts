@@ -2,7 +2,7 @@ import { runLeonardoCortex } from "../cortex/index";
 import { buildLeonardoPolishContext } from "../cortex/polishContext";
 import { hasPersonalityLeak, isSafeForVisitorText, sanitizeLeonardoReply } from "../cortex/corpusFilter";
 import { polishDraft, polishProviderLabel } from "../cortex/polish";
-import { polishWithOllama, polishWithOllamaStream, getActiveOllamaModel } from "../cortex/ollama";
+import { polishWithOllamaStream, getActiveOllamaModel } from "../cortex/ollama";
 import { polishPreservesDraft } from "../cortex/polishValidate";
 import { LEONARDO_SYSTEM_PROMPT } from "../lib/prompt";
 import type { CortexInput } from "../cortex/types";
@@ -14,14 +14,13 @@ export type LeonardoRequestBody = CortexInput & {
 };
 
 const SLM_FALLBACK_PROVIDER = "cortex+leonardo-museum:fallback";
+const STREAM_GUARD_CHARS = 18;
 
 export type LeonardoStreamEvent =
   | { type: "slm_start" }
   | { type: "token"; text: string }
   | { type: "done"; reply: string; provider: string }
   | { type: "error"; message: string };
-
-const STREAM_GUARD_CHARS = 36;
 
 function buildInput(body: LeonardoRequestBody): CortexInput {
   return {
@@ -47,39 +46,15 @@ async function polishCortexDraft(
   question: string,
   zone: ReturnType<typeof runLeonardoCortex>["trace"]["zone"],
 ): Promise<{ reply: string; provider: string } | null> {
-  const corpusContext = buildLeonardoPolishContext(question, zone, 5);
-
-  for (const strict of [false, true, true]) {
-    const polished = await polishDraft(
-      draft,
-      LEONARDO_SYSTEM_PROMPT,
-      corpusContext,
-      question,
-      strict,
-    );
-    if (!polished?.text) continue;
-    const text = sanitizeLeonardoReply(polished.text, question);
-    if (isValidPolish(draft, text, question)) {
-      return {
-        reply: text,
-        provider: polishProviderLabel(polished.provider, polished.model),
-      };
-    }
-    console.warn(`[leonardo] SLM polish failed validation (strict=${strict})`);
-  }
-
-  const last = await polishWithOllama(draft, LEONARDO_SYSTEM_PROMPT, {
-    corpusContext,
-    question,
-    strict: true,
-  });
-  if (last?.text) {
-    const text = sanitizeLeonardoReply(last.text, question);
-    if (isValidPolish(draft, text, question)) {
-      return { reply: text, provider: `cortex+${last.model}` };
-    }
-  }
-  return null;
+  const corpusContext = buildLeonardoPolishContext(question, zone, 3);
+  const polished = await polishDraft(draft, LEONARDO_SYSTEM_PROMPT, corpusContext, question);
+  if (!polished?.text) return null;
+  const text = sanitizeLeonardoReply(polished.text, question);
+  if (!isValidPolish(draft, text, question)) return null;
+  return {
+    reply: text,
+    provider: polishProviderLabel(polished.provider, polished.model),
+  };
 }
 
 /** CORTEX draft → corpus-tuned SLM polish → one full reply. */
@@ -100,7 +75,6 @@ export async function handleLeonardoRequest(body: LeonardoRequestBody) {
       reply = polished.reply;
       provider = polished.provider;
     } else {
-      console.error("[leonardo] SLM could not preserve CORTEX facts — using validated draft");
       reply = draft;
       provider = SLM_FALLBACK_PROVIDER;
     }
@@ -116,7 +90,7 @@ export async function handleLeonardoRequest(body: LeonardoRequestBody) {
   };
 }
 
-/** Stream SLM tokens — buffer briefly to block personality leaks before emitting. */
+/** Stream SLM tokens — brief guard buffer, then live tokens. */
 export async function* handleLeonardoStream(body: LeonardoRequestBody): AsyncGenerator<LeonardoStreamEvent> {
   if (!body?.question?.trim()) {
     yield { type: "error", message: "No question" };
@@ -126,7 +100,7 @@ export async function* handleLeonardoStream(body: LeonardoRequestBody): AsyncGen
   const input = buildInput(body);
   const cortex = runLeonardoCortex(input);
   const draft = sanitizeLeonardoReply(cortex.reply, input.question);
-  const corpusContext = buildLeonardoPolishContext(input.question, cortex.trace.zone, 5);
+  const corpusContext = buildLeonardoPolishContext(input.question, cortex.trace.zone, 3);
 
   if (body.polish === false) {
     yield { type: "done", reply: draft, provider: "cortex" };
@@ -137,35 +111,24 @@ export async function* handleLeonardoStream(body: LeonardoRequestBody): AsyncGen
 
   let streamed = "";
   let emitted = "";
-
-  const finish = (reply: string, provider: string) => {
-    return { type: "done" as const, reply, provider };
-  };
+  const finish = (reply: string, provider: string) => ({ type: "done" as const, reply, provider });
 
   try {
-    const stream = polishWithOllamaStream(draft, LEONARDO_SYSTEM_PROMPT, {
-      corpusContext,
-      question: input.question,
-      strict: true,
-    });
+    const stream = polishWithOllamaStream(draft, LEONARDO_SYSTEM_PROMPT, { corpusContext, question: input.question });
 
     for await (const tok of stream) {
       streamed += tok;
 
       if (hasPersonalityLeak(streamed)) {
-        console.warn("[leonardo] personality leak in stream — CORTEX fallback");
         yield finish(draft, SLM_FALLBACK_PROVIDER);
         return;
       }
 
       if (emitted.length === 0 && streamed.length < STREAM_GUARD_CHARS) continue;
 
-      if (emitted.length === 0 && !isValidPolish(draft, streamed, input.question)) {
-        if (streamed.length > 120) {
-          yield finish(draft, SLM_FALLBACK_PROVIDER);
-          return;
-        }
-        continue;
+      if (emitted.length === 0 && hasPersonalityLeak(streamed)) {
+        yield finish(draft, SLM_FALLBACK_PROVIDER);
+        return;
       }
 
       const delta = streamed.slice(emitted.length);
@@ -174,8 +137,7 @@ export async function* handleLeonardoStream(body: LeonardoRequestBody): AsyncGen
         emitted = streamed;
       }
     }
-  } catch (e) {
-    console.warn("[leonardo] SLM stream failed:", e);
+  } catch {
     yield finish(draft, SLM_FALLBACK_PROVIDER);
     return;
   }
@@ -185,10 +147,6 @@ export async function* handleLeonardoStream(body: LeonardoRequestBody): AsyncGen
   const valid = isValidPolish(draft, sanitized, input.question);
   const reply = valid ? sanitized : draft;
   const provider = valid ? `cortex+${model}` : SLM_FALLBACK_PROVIDER;
-
-  if (!valid && streamed.length > 0) {
-    console.warn("[leonardo] streamed SLM failed validation — using CORTEX draft");
-  }
 
   yield finish(reply, provider);
 }

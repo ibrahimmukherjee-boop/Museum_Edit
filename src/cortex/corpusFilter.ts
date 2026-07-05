@@ -19,12 +19,15 @@ export function isSafeCorpusChunk(source: string, content: string): boolean {
 const THIRD_PERSON_META =
   /\bLeonardo's\b|\bLeonardo is\b|\bLeonardo was\b|\bThe actual Leonardo\b|\bHe served Cesare\b|\bHis humour\b|\bhe delight/i;
 
-/** Personality-brief phrases that must never appear in visitor replies. */
+/** Personality-brief phrases and kiosk deflections — never in visitor replies. */
 const PERSONALITY_LEAK =
   /\b(my humou?r is dry|humou?r is dry and structural|let the observation carry the wit|never announce a joke|fable about a stone that leaves its hill|I delight when a pupil notices|Irony is more efficient than complaint|Any phenomenon, attended to carefully)\b/i;
 
+const DEFLECTION_LEAK =
+  /\b(ask again, slowly|notebook rewards patience|tell me what you see — i will answer in particulars|point to what interests you|what stirs in your mind next)\b/i;
+
 export function hasPersonalityLeak(text: string): boolean {
-  return PERSONALITY_LEAK.test(text);
+  return PERSONALITY_LEAK.test(text) || DEFLECTION_LEAK.test(text);
 }
 
 export function isSafeForVisitorText(text: string): boolean {
@@ -55,6 +58,9 @@ export function sanitizeLeonardoReply(text: string, question?: string): string {
     .replace(/\blet the observation carry the wit[^.!?]*[.!?]/gi, "")
     .replace(/\bnever announce a joke[^.!?]*[.!?]/gi, "")
     .replace(/\bfable about a stone that leaves its hill[^.!?]*[.!?]/gi, "")
+    .replace(/\bAsk again, slowly[^.!?]*[.!?]/gi, "")
+    .replace(/\bthe notebook rewards patience[^.!?]*[.!?]/gi, "")
+    .replace(/\bTell me what you see — I will answer in particulars[^.!?]*[.!?]/gi, "")
     .replace(/\bLeonardo is[^.!?]*[.!?]/gi, "")
     .replace(/\bLeonardo was[^.!?]*[.!?]/gi, "")
     .replace(/\bThe actual Leonardo[^.!?]*[.!?]/gi, "")

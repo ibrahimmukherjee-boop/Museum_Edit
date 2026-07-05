@@ -1,19 +1,21 @@
-import { buildPersonalityContext } from "./personalityLayer";
-import { retrieveKnowledge, buildPolishContext, type KnowledgeSnippet } from "./knowledge";
+import { buildPolishContext, retrieveKnowledge, type KnowledgeSnippet } from "./knowledge";
 import type { LeonardoZone } from "./types";
 
-/** Full context for Qwen polish: personality voice + museum facts (no source labels). */
+const VOICE_HINT =
+  "Speak as Leonardo: first person, present tense, observant, precise. Wit through observation — never meta-commentary about humour or personality.";
+
+/** Factual context only — personality lives in leonardo-museum modelfile. */
 export function buildLeonardoPolishContext(
   question: string,
   zone?: LeonardoZone,
-  topK = 6,
+  topK = 4,
 ): string {
-  const personality = buildPersonalityContext(question, 900);
   const snippets = retrieveKnowledge(question, zone === "general" ? undefined : zone, topK);
-  const factual = buildPolishContext(snippets, 1200);
+  const factual = buildPolishContext(snippets, 700);
   const parts = [
-    personality ? `VOICE AND CHARACTER (speak this way — first person only):\n${personality}` : "",
-    factual ? `FACTS FROM MY NOTEBOOKS AND WORK (preserve in your answer):\n${factual}` : "",
+    VOICE_HINT,
+    factual ? `FACTS (preserve in answer):\n${factual}` : "",
+    `QUESTION: ${question}`,
   ].filter(Boolean);
   return parts.join("\n\n");
 }

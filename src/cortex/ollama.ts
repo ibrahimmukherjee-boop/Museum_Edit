@@ -22,7 +22,7 @@ const LOCAL_MODEL_CANDIDATES = [
 const CLOUD_MODEL_CANDIDATES = ["glm-5.2:cloud", "glm-5.2"];
 const MODEL_CANDIDATES = [...LOCAL_MODEL_CANDIDATES, ...CLOUD_MODEL_CANDIDATES];
 
-const POLISH_OPTIONS = { temperature: 0.35, num_predict: 160, num_ctx: 2048, top_p: 0.85 };
+const POLISH_OPTIONS = { temperature: 0.28, num_predict: 90, num_ctx: 1024, top_p: 0.82 };
 
 let activeModel: string | null = null;
 
@@ -58,23 +58,21 @@ function resolveCandidate(preferred: string, installed: string[]): string[] {
   return out;
 }
 
-function polishUserMessage(draft: string, question?: string, strict = false): string {
+function polishUserMessage(draft: string, question?: string): string {
   const q = question?.trim() ? `Visitor asks: "${question.trim()}"\n` : "";
-  if (strict) {
-    return `${q}Rephrase the DRAFT in first person as Leonardo. Keep EVERY fact, name, date, and denial. Do not change meaning.\n\nDRAFT:\n${draft}`;
-  }
-  return `${q}Polish the DRAFT in Leonardo's first-person voice. Keep every fact and proper noun from the DRAFT.\n\nDRAFT:\n${draft}`;
+  return `${q}Rephrase this CORTEX draft as Leonardo. First sentence answers the question. Keep every fact. Two short paragraphs maximum.\n\nDRAFT:\n${draft}`;
 }
 
-function polishSystemSuffix(corpusContext?: string, question?: string): string {
-  const parts = [
-    "You POLISH a CORTEX draft — do not invent facts. First person, present tense.",
-    "Answer the visitor's question in sentence one. Keep every fact from the DRAFT.",
-    "Never describe your humour style, never say humour is dry, never speak in third person.",
-  ];
-  if (corpusContext) parts.push(`Extra context:\n${corpusContext.slice(0, 600)}`);
-  if (question) parts.push(`Question: ${question}`);
-  return parts.join("\n");
+function polishSystemForModel(model: string, corpusContext?: string): string {
+  const cortex = [
+    "You receive a CORTEX draft — rephrase it in Leonardo's voice only.",
+    "Keep every fact, name, date, and denial. Do not add new topics.",
+    "Never describe humour, never deflect, never speak in third person.",
+  ].join(" ");
+  if (model.startsWith(LEONARDO_OLLAMA_MODEL)) {
+    return corpusContext ? `${cortex}\n${corpusContext.slice(0, 500)}` : cortex;
+  }
+  return cortex + (corpusContext ? `\n${corpusContext.slice(0, 500)}` : "");
 }
 
 async function pullModel(base: string, name: string): Promise<boolean> {
@@ -97,7 +95,7 @@ async function pullModel(base: string, name: string): Promise<boolean> {
 /** Create leonardo-museum from qwen2.5:1.5b + corpus SYSTEM (runs on EC2 at boot). */
 export async function ensureLeonardoCorpusModel(baseUrlArg?: string): Promise<string> {
   const base = (baseUrlArg ?? process.env.OLLAMA_BASE_URL ?? DEFAULT_BASE).replace(/\/$/, "");
-  const revision = process.env.LEONARDO_MODEL_REVISION ?? "2";
+  const revision = process.env.LEONARDO_MODEL_REVISION ?? "3";
   const { readFileSync, writeFileSync } = await import("node:fs");
   const { join } = await import("node:path");
   const revFile = join(process.cwd(), ".leonardo-model-revision");
@@ -196,17 +194,17 @@ async function chatOnce(
 /** Stream polish tokens for low perceived latency. */
 export async function* polishWithOllamaStream(
   draft: string,
-  systemPrompt: string,
-  opts: OllamaPolishOptions & { strict?: boolean } = {},
+  _systemPrompt: string,
+  opts: OllamaPolishOptions = {},
 ): AsyncGenerator<string, { model: string } | null, unknown> {
   const base = baseUrl(opts);
   const preferred = opts.model ?? process.env.OLLAMA_MODEL ?? DEFAULT_MODEL;
   const installed = await listInstalledModels(base);
   const candidates = resolveCandidate(preferred, installed);
-  const systemContent = systemPrompt + "\n" + polishSystemSuffix(opts.corpusContext, opts.question);
-  const userContent = polishUserMessage(draft, opts.question, opts.strict);
+  const userContent = polishUserMessage(draft, opts.question);
 
   for (const model of candidates) {
+    const systemContent = polishSystemForModel(model, opts.corpusContext);
     try {
       const r = await fetch(`${base}/api/chat`, {
         method: "POST",
@@ -254,18 +252,18 @@ export async function* polishWithOllamaStream(
 
 export async function polishWithOllama(
   draft: string,
-  systemPrompt: string,
-  opts: OllamaPolishOptions & { strict?: boolean } = {},
+  _systemPrompt: string,
+  opts: OllamaPolishOptions = {},
 ): Promise<{ text: string; model: string } | null> {
   const base = baseUrl(opts);
   const preferred = opts.model ?? process.env.OLLAMA_MODEL ?? DEFAULT_MODEL;
-  const timeoutMs = opts.timeoutMs ?? 45_000;
-  const systemContent = systemPrompt + "\n" + polishSystemSuffix(opts.corpusContext, opts.question);
-  const userContent = polishUserMessage(draft, opts.question, opts.strict);
+  const timeoutMs = opts.timeoutMs ?? 30_000;
+  const userContent = polishUserMessage(draft, opts.question);
   const installed = await listInstalledModels(base);
   const candidates = resolveCandidate(preferred, installed);
 
   for (const model of candidates) {
+    const systemContent = polishSystemForModel(model, opts.corpusContext);
     const text = await chatOnce(base, model, systemContent, userContent, timeoutMs);
     if (text) {
       activeModel = model;

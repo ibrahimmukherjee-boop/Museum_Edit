@@ -4,18 +4,6 @@ import type { CortexInput } from "./types";
 import type { KnowledgeSnippet } from "./knowledge";
 import { isSafeForVisitorText, sanitizeLeonardoReply } from "./corpusFilter";
 
-const CLOSINGS = [
-  "Tell me what you see — I will answer in particulars.",
-  "Ask again, slowly; the notebook rewards patience.",
-  "Point to what interests you, and we will look together.",
-  "What stirs in your mind next?",
-];
-
-function closingFor(question: string, zone: LeonardoZone): string {
-  const idx = (question.length + zone.charCodeAt(0)) % CLOSINGS.length;
-  return CLOSINGS[idx]!;
-}
-
 function paintingByQuestion(question: string): (typeof corpus.paintings)[0] | null {
   const q = question.toLowerCase();
   const rules: [RegExp, string][] = [
@@ -39,7 +27,7 @@ function topicSeed(question: string, zone: LeonardoZone): string | null {
     return (
       "I am Leonardo da Vinci — painter, engineer, anatomist, musician — born in Vinci in fourteen fifty-two. " +
       "I have served courts in Florence, Milan, and France, yet I still call myself a student of nature. " +
-      "My notebooks hold wings, veins, and vortices of water; my panels hold light made flesh. Ask what you wish — I answer from what I have seen and drawn."
+      "My notebooks hold wings, veins, and vortices of water; my panels hold light made flesh."
     );
   }
 
@@ -64,7 +52,7 @@ function topicSeed(question: string, zone: LeonardoZone): string | null {
     return (
       "I hesitate to crown one invention — I leave many unfinished on purpose. " +
       "The ornithopter taught me how a wing must beat air; the tank and the screw for water taught me how force finds path through matter. " +
-      "Yet the instrument I trust most is not iron but the eye: saper vedere — knowing how to see. Without that, every machine is blind."
+      "Yet the instrument I trust most is not iron but the eye: saper vedere — knowing how to see."
     );
   }
 
@@ -83,10 +71,11 @@ function topicSeed(question: string, zone: LeonardoZone): string | null {
     );
   }
 
-  if (/\b(fly|flight|flying|machine|aircraft|plane|helicopter|jet|modern flying)\b/.test(q)) {
+  if (/\b(fly|flight|flying|machine|aircraft|plane|helicopter|jet|modern flying|ornithopter)\b/.test(q)) {
     return (
-      "Your flying machines rise on thunder where the falcon rises on silence. I studied the wing for years and drew machines that never left the page. " +
-      "Nature solved flight first; my task was to read her handwriting."
+      "Your machines do what my pages only dreamed — they carry men on thunder where I sketched silence on the wing of a bird. " +
+      "I drew the ornithopter for years yet never saw it leave the ground; yours climb as if nature's law were read aloud. " +
+      "I would study your wings as I studied the bat's — to see what new handwriting the sky has learned."
     );
   }
 
@@ -132,23 +121,21 @@ export function composeLeonardoReply(
   const visitor = input.memory.visitorName !== "Guest" ? `${input.memory.visitorName}, ` : "";
   const hotspot = input.hotspotLabel ? `I lean closer to ${input.hotspotLabel} as I answer. ` : "";
   const folioBlock = input.folioContext
-    ? `Before us lies “${input.folioContext.title}” — ${input.folioContext.body.slice(0, 180).trim()}… `
+    ? `Before us lies “${input.folioContext.title}” — ${input.folioContext.body.slice(0, 140).trim()}… `
     : "";
 
   const seed = topicSeed(input.question, zone);
-  const detail = seed ? "" : museumDetail(snippets, input.question);
-  const body = seed ?? detail;
-
-  if (!body) {
-    return sanitizeLeonardoReply(
-      `${visitor}${hotspot}${folioBlock}I hear your question. Set the thing before the eye — name its light, its weight, its motion — and I will answer in particulars, not in fog. ${closingFor(input.question, zone)}`,
-      input.question,
-    );
+  if (seed) {
+    return sanitizeLeonardoReply(`${visitor}${hotspot}${folioBlock}${seed}`, input.question);
   }
 
-  const parts = [visitor + hotspot + folioBlock + body, closingFor(input.question, zone)].filter(
-    (p) => p.trim().length > 30 && isSafeForVisitorText(p),
-  );
+  const detail = museumDetail(snippets, input.question);
+  if (detail) {
+    return sanitizeLeonardoReply(`${visitor}${hotspot}${folioBlock}${detail}`, input.question);
+  }
 
-  return sanitizeLeonardoReply(parts.join("\n\n"), input.question);
+  return sanitizeLeonardoReply(
+    `${visitor}${hotspot}${folioBlock}I hear your question — name its light, its weight, its motion, and I will answer in particulars.`,
+    input.question,
+  );
 }
