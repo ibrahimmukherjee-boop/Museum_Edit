@@ -15,14 +15,14 @@ const DEFAULT_MODEL = process.env.OLLAMA_MODEL ?? LEONARDO_OLLAMA_MODEL;
 
 const LOCAL_MODEL_CANDIDATES = [
   LEONARDO_OLLAMA_MODEL,
-  "qwen2.5:0.5b",
   "qwen2.5:1.5b",
+  "qwen2.5:0.5b",
   "qwen2.5:3b",
 ];
 const CLOUD_MODEL_CANDIDATES = ["glm-5.2:cloud", "glm-5.2"];
 const MODEL_CANDIDATES = [...LOCAL_MODEL_CANDIDATES, ...CLOUD_MODEL_CANDIDATES];
 
-const POLISH_OPTIONS = { temperature: 0.65, num_predict: 120, num_ctx: 1536, top_p: 0.9 };
+const POLISH_OPTIONS = { temperature: 0.35, num_predict: 160, num_ctx: 2048, top_p: 0.85 };
 
 let activeModel: string | null = null;
 
@@ -58,9 +58,12 @@ function resolveCandidate(preferred: string, installed: string[]): string[] {
   return out;
 }
 
-function polishUserMessage(draft: string, question?: string): string {
+function polishUserMessage(draft: string, question?: string, strict = false): string {
   const q = question?.trim() ? `Visitor asks: "${question.trim()}"\n` : "";
-  return `${q}Polish this CORTEX draft in Leonardo's voice. Keep every fact. Two short paragraphs.\n\nDRAFT:\n${draft}`;
+  if (strict) {
+    return `${q}Rephrase the DRAFT in first person as Leonardo. Keep EVERY fact, name, date, and denial. Do not change meaning.\n\nDRAFT:\n${draft}`;
+  }
+  return `${q}Polish the DRAFT in Leonardo's first-person voice. Keep every fact and proper noun from the DRAFT.\n\nDRAFT:\n${draft}`;
 }
 
 function polishSystemSuffix(corpusContext?: string, question?: string): string {
@@ -222,13 +225,13 @@ export async function* polishWithOllamaStream(
 export async function polishWithOllama(
   draft: string,
   systemPrompt: string,
-  opts: OllamaPolishOptions = {},
+  opts: OllamaPolishOptions & { strict?: boolean } = {},
 ): Promise<{ text: string; model: string } | null> {
   const base = baseUrl(opts);
   const preferred = opts.model ?? process.env.OLLAMA_MODEL ?? DEFAULT_MODEL;
   const timeoutMs = opts.timeoutMs ?? 45_000;
   const systemContent = systemPrompt + "\n" + polishSystemSuffix(opts.corpusContext, opts.question);
-  const userContent = polishUserMessage(draft, opts.question);
+  const userContent = polishUserMessage(draft, opts.question, opts.strict);
   const installed = await listInstalledModels(base);
   const candidates = resolveCandidate(preferred, installed);
 

@@ -2,7 +2,8 @@ import { runLeonardoCortex } from "../cortex/index";
 import { buildLeonardoPolishContext } from "../cortex/polishContext";
 import { sanitizeLeonardoReply } from "../cortex/corpusFilter";
 import { polishDraft, polishProviderLabel } from "../cortex/polish";
-import { polishWithOllamaStream } from "../cortex/ollama";
+import { polishWithOllama } from "../cortex/ollama";
+import { polishPreservesDraft } from "../cortex/polishValidate";
 import { LEONARDO_SYSTEM_PROMPT } from "../lib/prompt";
 import type { CortexInput } from "../cortex/types";
 
@@ -10,16 +11,49 @@ export type LeonardoRequestBody = CortexInput & {
   polish?: boolean;
   draft?: string;
   memory?: CortexInput["memory"];
-  stream?: boolean;
 };
 
-export type LeonardoStreamEvent =
-  | { type: "draft"; reply: string; provider: string }
-  | { type: "token"; text: string }
-  | { type: "done"; reply: string; provider: string }
-  | { type: "error"; message: string };
+async function polishCortexDraft(
+  draft: string,
+  question: string,
+  zone: ReturnType<typeof runLeonardoCortex>["trace"]["zone"],
+): Promise<{ reply: string; provider: string } | null> {
+  const corpusContext = buildLeonardoPolishContext(question, zone, 5);
 
-/** CORTEX draft → corpus-tuned SLM polish (always on unless polish:false). */
+  for (const strict of [false, true, true]) {
+    const polished = await polishDraft(
+      draft,
+      LEONARDO_SYSTEM_PROMPT,
+      corpusContext,
+      question,
+      strict,
+    );
+    if (!polished?.text) continue;
+    const text = sanitizeLeonardoReply(polished.text, question);
+    if (polishPreservesDraft(draft, text, question)) {
+      return {
+        reply: text,
+        provider: polishProviderLabel(polished.provider, polished.model),
+      };
+    }
+    console.warn(`[leonardo] SLM polish failed validation (strict=${strict})`);
+  }
+
+  const last = await polishWithOllama(draft, LEONARDO_SYSTEM_PROMPT, {
+    corpusContext,
+    question,
+    strict: true,
+  });
+  if (last?.text) {
+    const text = sanitizeLeonardoReply(last.text, question);
+    if (polishPreservesDraft(draft, text, question)) {
+      return { reply: text, provider: `cortex+${last.model}` };
+    }
+  }
+  return null;
+}
+
+/** CORTEX draft → corpus-tuned SLM polish → one full reply. */
 export async function handleLeonardoRequest(body: LeonardoRequestBody) {
   if (!body?.question?.trim()) {
     return { status: 400 as const, error: "No question" };
@@ -34,35 +68,19 @@ export async function handleLeonardoRequest(body: LeonardoRequestBody) {
   };
 
   const cortex = runLeonardoCortex(input);
-  let reply = sanitizeLeonardoReply(cortex.reply, input.question);
+  const draft = sanitizeLeonardoReply(cortex.reply, input.question);
+  let reply = draft;
   let provider = "cortex";
 
   if (body.polish !== false) {
-    const zone = cortex.trace.zone;
-    const corpusContext = buildLeonardoPolishContext(input.question, zone, 5);
-    const polished = await polishDraft(
-      reply,
-      LEONARDO_SYSTEM_PROMPT,
-      corpusContext,
-      input.question,
-    );
-    if (polished?.text) {
-      reply = sanitizeLeonardoReply(polished.text, input.question);
-      provider = polishProviderLabel(polished.provider, polished.model);
+    const polished = await polishCortexDraft(draft, input.question, cortex.trace.zone);
+    if (polished) {
+      reply = polished.reply;
+      provider = polished.provider;
     } else {
-      for (let attempt = 0; attempt < 2; attempt++) {
-        console.warn(`[leonardo] SLM polish retry ${attempt + 1}`);
-        const retry = await polishDraft(reply, LEONARDO_SYSTEM_PROMPT, corpusContext, input.question);
-        if (retry?.text) {
-          reply = sanitizeLeonardoReply(retry.text, input.question);
-          provider = polishProviderLabel(retry.provider, retry.model);
-          break;
-        }
-      }
-      if (!provider.includes("+")) {
-        console.error("[leonardo] SLM polish failed after retries");
-        provider = "cortex+slm-failed";
-      }
+      console.error("[leonardo] SLM could not preserve CORTEX facts — using validated draft");
+      reply = draft;
+      provider = "cortex+slm-fallback";
     }
   }
 
@@ -74,65 +92,4 @@ export async function handleLeonardoRequest(body: LeonardoRequestBody) {
     provider,
     trace: cortex.trace,
   };
-}
-
-/** SSE: emit CORTEX draft immediately, then stream SLM polish tokens. */
-export async function* handleLeonardoStream(
-  body: LeonardoRequestBody,
-): AsyncGenerator<LeonardoStreamEvent> {
-  if (!body?.question?.trim()) {
-    yield { type: "error", message: "No question" };
-    return;
-  }
-
-  const input: CortexInput = {
-    question: body.question,
-    history: body.history ?? [],
-    memory: body.memory ?? { sessionId: "api", visitorName: "Guest", workingMemory: [] },
-    folioContext: body.folioContext,
-    hotspotLabel: body.hotspotLabel,
-  };
-
-  const cortex = runLeonardoCortex(input);
-  const draft = sanitizeLeonardoReply(body.draft ?? cortex.reply, input.question);
-  yield { type: "draft", reply: draft, provider: "cortex" };
-
-  if (body.polish === false) {
-    yield { type: "done", reply: draft, provider: "cortex" };
-    return;
-  }
-
-  const zone = cortex.trace.zone;
-  const corpusContext = buildLeonardoPolishContext(input.question, zone, 5);
-  let full = "";
-  const stream = polishWithOllamaStream(draft, LEONARDO_SYSTEM_PROMPT, {
-    corpusContext,
-    question: input.question,
-  });
-
-  let model = "leonardo-museum";
-  while (true) {
-    const next = await stream.next();
-    if (next.done) {
-      model = next.value?.model ?? model;
-      break;
-    }
-    full += next.value;
-    yield { type: "token", text: next.value };
-  }
-
-  if (!full.trim()) {
-    const fallback = await polishDraft(draft, LEONARDO_SYSTEM_PROMPT, corpusContext, input.question);
-    if (fallback?.text) {
-      full = fallback.text;
-      model = fallback.model ?? model;
-    } else {
-      full = draft;
-      model = "cortex+fallback";
-    }
-  }
-
-  const reply = sanitizeLeonardoReply(full, input.question);
-  const provider = model.includes("cortex") ? model : `cortex+${model}`;
-  yield { type: "done", reply, provider };
 }
