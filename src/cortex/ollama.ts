@@ -115,7 +115,8 @@ export async function ensureLeonardoCorpusModel(baseUrlArg?: string): Promise<st
   });
   if (!create.ok) {
     const err = await create.text().catch(() => "");
-    console.warn(`[ollama] create failed: ${err.slice(0, 200)}`);
+    console.warn(`[ollama] create ${LEONARDO_OLLAMA_MODEL} failed: ${err.slice(0, 300)}`);
+    activeModel = baseName;
     return baseName;
   }
   await create.json();
@@ -252,21 +253,24 @@ export async function ollamaReady(baseUrlArg?: string): Promise<boolean> {
 }
 
 export async function ensureOllamaModel(model?: string, baseUrlArg?: string): Promise<string> {
-  const corpusModel = await ensureLeonardoCorpusModel(baseUrlArg);
+  await ensureLeonardoCorpusModel(baseUrlArg);
   const base = (baseUrlArg ?? process.env.OLLAMA_BASE_URL ?? DEFAULT_BASE).replace(/\/$/, "");
-  const preferred = model ?? corpusModel ?? process.env.OLLAMA_MODEL ?? DEFAULT_MODEL;
-  const probe = await chatOnce(base, preferred, "OK", "ping", 60_000);
-  if (probe) {
-    activeModel = preferred;
-    console.log(`[ollama] active model: ${preferred}`);
-    return preferred;
+  const preferred = model ?? process.env.OLLAMA_MODEL ?? LEONARDO_OLLAMA_MODEL;
+  const installed = await listInstalledModels(base);
+  const candidates = resolveCandidate(preferred, installed);
+
+  for (const name of candidates) {
+    const probe = await chatOnce(base, name, "OK", "ping", 45_000);
+    if (probe) {
+      activeModel = name;
+      console.log(`[ollama] active model: ${name}`);
+      return name;
+    }
   }
   for (const name of LOCAL_MODEL_CANDIDATES) {
-    if (! (await listInstalledModels(base)).some((m) => m.startsWith(name))) {
-      await pullModel(base, name);
-    }
-    const p = await chatOnce(base, name, "OK", "ping", 60_000);
-    if (p) {
+    if (!installed.some((m) => m.startsWith(name))) await pullModel(base, name);
+    const probe = await chatOnce(base, name, "OK", "ping", 45_000);
+    if (probe) {
       activeModel = name;
       return name;
     }

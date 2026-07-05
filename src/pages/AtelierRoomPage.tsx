@@ -70,12 +70,6 @@ export default function AtelierRoomPage() {
       pendingHotspotLabel.current = undefined;
 
       let reply = "";
-      const aid = `a-${Date.now()}`;
-      setThreads((p) => ({
-        ...p,
-        [folioTarget.id]: [...(p[folioTarget.id] ?? nextTurns), { id: aid, role: "assistant", content: "" }],
-      }));
-
       try {
         const result = await askLeonardo({
           question: t,
@@ -86,41 +80,18 @@ export default function AtelierRoomPage() {
             domain: folioTarget.domain,
           },
           hotspotLabel,
-          onDraft: (draft) => {
-            setThreads((p) => ({
-              ...p,
-              [folioTarget.id]: (p[folioTarget.id] ?? []).map((turn) =>
-                turn.id === aid ? { ...turn, content: draft } : turn,
-              ),
-            }));
-          },
-          onToken: (_c, full) => {
-            setThreads((p) => ({
-              ...p,
-              [folioTarget.id]: (p[folioTarget.id] ?? []).map((turn) =>
-                turn.id === aid ? { ...turn, content: full } : turn,
-              ),
-            }));
-          },
         });
         reply = stripMuseumNavMarkers(result.reply?.trim() || demoLeonardoReply(t));
         setLastProvider(result.provider);
-        setThreads((p) => ({
-          ...p,
-          [folioTarget.id]: (p[folioTarget.id] ?? []).map((turn) =>
-            turn.id === aid ? { ...turn, content: reply } : turn,
-          ),
-        }));
       } catch {
         reply = stripMuseumNavMarkers(demoLeonardoReply(t));
-        setThreads((p) => ({
-          ...p,
-          [folioTarget.id]: (p[folioTarget.id] ?? []).map((turn) =>
-            turn.id === aid ? { ...turn, content: reply } : turn,
-          ),
-        }));
       }
 
+      const aid = `a-${Date.now()}`;
+      setThreads((p) => ({
+        ...p,
+        [folioTarget.id]: [...(p[folioTarget.id] ?? nextTurns), { id: aid, role: "assistant", content: reply }],
+      }));
       setTypingId(aid);
       setLoading(false);
       inputRef.current?.focus();

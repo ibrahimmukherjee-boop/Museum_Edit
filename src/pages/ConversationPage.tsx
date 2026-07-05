@@ -77,47 +77,23 @@ export default function ConversationPage() {
 
     let reply: string;
     let provider = "cortex";
-    const aid = `a-${Date.now()}`;
-    setTurns((prev) => [...prev, { id: aid, role: "assistant", content: "" }]);
-    setTypingId(null);
-
     try {
       if (settings.devMode) {
         reply = demoLeonardoReply(t);
-        setTurns((prev) =>
-          prev.map((turn) => (turn.id === aid ? { ...turn, content: reply } : turn)),
-        );
       } else {
         const history = nextTurns.map((m) => ({ role: m.role, content: m.content }));
-        const result = await askLeonardo({
-          question: t,
-          history,
-          onDraft: (draft) => {
-            setTurns((prev) =>
-              prev.map((turn) => (turn.id === aid ? { ...turn, content: draft } : turn)),
-            );
-          },
-          onToken: (_chunk, full) => {
-            setTurns((prev) =>
-              prev.map((turn) => (turn.id === aid ? { ...turn, content: full } : turn)),
-            );
-          },
-        });
+        const result = await askLeonardo({ question: t, history });
         reply = result.reply || demoLeonardoReply(t);
         provider = result.provider;
         setLastProvider(provider);
-        setTurns((prev) =>
-          prev.map((turn) => (turn.id === aid ? { ...turn, content: reply } : turn)),
-        );
       }
     } catch {
       reply = demoLeonardoReply(t);
-      setTurns((prev) =>
-        prev.map((turn) => (turn.id === aid ? { ...turn, content: reply } : turn)),
-      );
     }
 
     reply = stripMuseumNavMarkers(reply);
+    const aid = `a-${Date.now()}`;
+    setTurns((prev) => [...prev, { id: aid, role: "assistant", content: reply }]);
     setTypingId(aid);
     setLoading(false);
 
@@ -202,7 +178,7 @@ export default function ConversationPage() {
           <GlassPanel variant="cream" className="max-w-[92%] p-4">
             <span className="block font-[Cinzel] text-[0.65rem] tracking-[0.18em] text-[#2a2218]/45 uppercase">Leonardo</span>
             <p className="mt-1 font-serif text-base italic text-[#2a2218]/55">
-              Leonardo is composing… (CORTEX draft appears first, then corpus SLM polish)
+              Leonardo is composing your answer…
             </p>
           </GlassPanel>
         )}

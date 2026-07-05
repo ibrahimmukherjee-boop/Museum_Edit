@@ -7,7 +7,7 @@ export const LEONARDO_OLLAMA_MODEL = "leonardo-museum";
 export const LEONARDO_BASE_MODEL = process.env.OLLAMA_BASE_MODEL ?? "qwen2.5:0.5b";
 
 /** Corpus + personality baked into Ollama SYSTEM (local “fine-tune” without GPU LoRA). */
-export function buildLeonardoCorpusSystemPrompt(maxChars = 3200): string {
+export function buildLeonardoCorpusSystemPrompt(maxChars = 2400): string {
   const voice = PERSONA_VOICE_ANCHORS.map((a) => a.content).join("\n");
   const brief = TRAINING_CHUNKS.filter(
     (c) => c.source.startsWith("Personality:") && isSafePersonalityChunk(c.source, c.text),

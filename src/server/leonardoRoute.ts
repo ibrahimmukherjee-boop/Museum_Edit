@@ -34,12 +34,10 @@ export async function handleLeonardoRequest(body: LeonardoRequestBody) {
   };
 
   const cortex = runLeonardoCortex(input);
-  let reply = sanitizeLeonardoReply(body.draft ?? cortex.reply, input.question);
+  let reply = sanitizeLeonardoReply(cortex.reply, input.question);
   let provider = "cortex";
 
-  const shouldPolish = body.polish !== false;
-
-  if (shouldPolish) {
+  if (body.polish !== false) {
     const zone = cortex.trace.zone;
     const corpusContext = buildLeonardoPolishContext(input.question, zone, 5);
     const polished = await polishDraft(
@@ -52,14 +50,18 @@ export async function handleLeonardoRequest(body: LeonardoRequestBody) {
       reply = sanitizeLeonardoReply(polished.text, input.question);
       provider = polishProviderLabel(polished.provider, polished.model);
     } else {
-      console.warn("[leonardo] SLM polish failed — retrying once");
-      const retry = await polishDraft(reply, LEONARDO_SYSTEM_PROMPT, corpusContext, input.question);
-      if (retry?.text) {
-        reply = sanitizeLeonardoReply(retry.text, input.question);
-        provider = polishProviderLabel(retry.provider, retry.model);
-      } else {
-        console.warn("[leonardo] SLM unavailable after retry — CORTEX draft only");
-        provider = "cortex+fallback";
+      for (let attempt = 0; attempt < 2; attempt++) {
+        console.warn(`[leonardo] SLM polish retry ${attempt + 1}`);
+        const retry = await polishDraft(reply, LEONARDO_SYSTEM_PROMPT, corpusContext, input.question);
+        if (retry?.text) {
+          reply = sanitizeLeonardoReply(retry.text, input.question);
+          provider = polishProviderLabel(retry.provider, retry.model);
+          break;
+        }
+      }
+      if (!provider.includes("+")) {
+        console.error("[leonardo] SLM polish failed after retries");
+        provider = "cortex+slm-failed";
       }
     }
   }
