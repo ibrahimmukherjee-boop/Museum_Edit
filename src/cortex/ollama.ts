@@ -95,7 +95,7 @@ async function pullModel(base: string, name: string): Promise<boolean> {
 /** Create leonardo-museum from qwen2.5:1.5b + corpus SYSTEM (runs on EC2 at boot). */
 export async function ensureLeonardoCorpusModel(baseUrlArg?: string): Promise<string> {
   const base = (baseUrlArg ?? process.env.OLLAMA_BASE_URL ?? DEFAULT_BASE).replace(/\/$/, "");
-  const revision = process.env.LEONARDO_MODEL_REVISION ?? "3";
+  const revision = process.env.LEONARDO_MODEL_REVISION ?? "4";
   const { readFileSync, writeFileSync } = await import("node:fs");
   const { join } = await import("node:path");
   const revFile = join(process.cwd(), ".leonardo-model-revision");
