@@ -87,7 +87,7 @@ for (const c of CASES) {
     let ok = reply.length > 40;
     ok &&= checkPatterns(reply, c.mustInclude, "required");
     ok &&= !c.mustExclude.some((re) => re.test(reply)) || (console.log(`  ✗ forbidden pattern in reply`), false);
-    if (c.needLlm) ok &&= provider.includes("qwen") || provider.includes("+");
+    if (c.needLlm) ok &&= provider.includes("leonardo") || provider.includes("qwen");
 
     // No A/B loop — each reply should differ from prior
     const dup = replies.slice(0, -1).some((r) => r.slice(0, 80) === reply.slice(0, 80));

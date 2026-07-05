@@ -1,9 +1,7 @@
 import { runLeonardoCortex } from "../cortex/index";
 import { sanitizeLeonardoReply } from "../cortex/corpusFilter";
 import { demoLeonardoReply } from "./demoResponses";
-import { loadSettings, wantsLlmPolish } from "./settings";
 import { getSession } from "./auth";
-import { LEONARDO_SYSTEM_PROMPT } from "./prompt";
 import type { LeonardoZone } from "../cortex/types";
 
 export interface AskLeonardoOpts {
@@ -11,18 +9,13 @@ export interface AskLeonardoOpts {
   history?: { role: "user" | "assistant"; content: string }[];
   folioContext?: { title: string; body: string; domain?: LeonardoZone };
   hotspotLabel?: string;
-  /** Force skip SLM polish (kiosk fast path, sub-second). */
-  instant?: boolean;
-  /** Override settings; default follows kiosk fast mode. */
-  useLlmPolish?: boolean;
+  /** Called immediately with CORTEX draft (~instant). */
+  onDraft?: (draft: string) => void;
+  /** Called as SLM streams tokens (optional). */
+  onToken?: (chunk: string, full: string) => void;
 }
 
-const POLISH_BUDGET_MS = 120_000;
-
-function isLocalDevHost(): boolean {
-  if (typeof window === "undefined") return false;
-  return /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname);
-}
+const STREAM_BUDGET_MS = 60_000;
 
 function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
   return Promise.race([
@@ -32,11 +25,10 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
 }
 
 /**
- * Default: CORTEX in-browser (~sub-second). Optional SLM polish via /api/leonardo when enabled.
+ * Always: CORTEX draft (instant preview) → corpus-tuned SLM polish on EC2.
  */
 export async function askLeonardo(opts: AskLeonardoOpts): Promise<{ reply: string; provider: string }> {
   const session = getSession();
-  const settings = loadSettings();
   const memory = {
     sessionId: session?.sessionId ?? "anon",
     visitorName: session?.name ?? "Guest",
@@ -54,13 +46,17 @@ export async function askLeonardo(opts: AskLeonardoOpts): Promise<{ reply: strin
   });
 
   const draft = sanitizeLeonardoReply(cortex.reply || demoLeonardoReply(opts.question), opts.question);
+  opts.onDraft?.(draft);
 
-  const wantPolish =
-    opts.instant !== true &&
-    (opts.useLlmPolish === true || (opts.useLlmPolish !== false && wantsLlmPolish(settings)));
-
-  if (!wantPolish) {
-    return { reply: draft, provider: cortex.provider };
+  try {
+    const result = await withTimeout(
+      streamLeonardoFromApi(opts, memory, draft),
+      STREAM_BUDGET_MS,
+      null,
+    );
+    if (result) return result;
+  } catch {
+    /* fallback below */
   }
 
   try {
@@ -78,7 +74,7 @@ export async function askLeonardo(opts: AskLeonardoOpts): Promise<{ reply: strin
           draft,
         }),
       }),
-      POLISH_BUDGET_MS,
+      STREAM_BUDGET_MS,
       null as unknown as Response,
     );
     if (res?.ok) {
@@ -86,42 +82,83 @@ export async function askLeonardo(opts: AskLeonardoOpts): Promise<{ reply: strin
       if (data.reply?.trim()) {
         return {
           reply: sanitizeLeonardoReply(data.reply, opts.question),
-          provider: data.provider ?? "cortex+qwen2.5:3b",
+          provider: data.provider ?? "cortex+leonardo-museum",
         };
       }
     }
   } catch {
-    /* fall through to draft */
+    /* fall through */
   }
 
-  if (isLocalDevHost() && settings.useLocalModel) {
-    const { localLlmReady, polishWithLocalLlm, resolveLocalModel } = await import("../cortex/localLlm");
-    const ready = await withTimeout(localLlmReady({ baseUrl: settings.localModelUrl }), 800, false);
-    if (ready) {
-      const model =
-        (await withTimeout(resolveLocalModel(settings.localModelName, settings.localModelUrl), 800, null)) ??
-        settings.localModelName;
-      const polished = await withTimeout(
-        polishWithLocalLlm(draft, opts.question, {
-          baseUrl: settings.localModelUrl,
-          model,
-          folioContext: opts.folioContext,
-          hotspotLabel: opts.hotspotLabel,
-          history: opts.history,
-        }),
-        POLISH_BUDGET_MS,
-        null,
-      );
-      if (polished) {
-        return {
-          reply: sanitizeLeonardoReply(polished, opts.question),
-          provider: `cortex+${model}`,
+  return { reply: draft, provider: "cortex+fallback" };
+}
+
+async function streamLeonardoFromApi(
+  opts: AskLeonardoOpts,
+  memory: Record<string, unknown>,
+  draft: string,
+): Promise<{ reply: string; provider: string } | null> {
+  const res = await fetch("/api/leonardo/stream", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      question: opts.question,
+      history: opts.history ?? [],
+      folioContext: opts.folioContext,
+      hotspotLabel: opts.hotspotLabel,
+      memory,
+      polish: true,
+      draft,
+    }),
+  });
+  if (!res.ok || !res.body) return null;
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = "";
+  let full = "";
+  let provider = "cortex+leonardo-museum";
+  let reply = draft;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    const parts = buf.split("\n\n");
+    buf = parts.pop() ?? "";
+    for (const part of parts) {
+      const line = part.replace(/^data:\s*/, "").trim();
+      if (!line) continue;
+      try {
+        const ev = JSON.parse(line) as {
+          type: string;
+          reply?: string;
+          provider?: string;
+          text?: string;
         };
+        if (ev.type === "draft" && ev.reply) {
+          opts.onDraft?.(ev.reply);
+          full = ev.reply;
+        } else if (ev.type === "token" && ev.text) {
+          full += ev.text;
+          opts.onToken?.(ev.text, full);
+        } else if (ev.type === "done") {
+          reply = ev.reply ?? full;
+          provider = ev.provider ?? provider;
+        }
+      } catch {
+        /* skip */
       }
     }
   }
 
-  return { reply: draft, provider: cortex.provider };
+  if (reply && reply !== draft) {
+    return { reply: sanitizeLeonardoReply(reply, opts.question), provider };
+  }
+  if (full.length > draft.length) {
+    return { reply: sanitizeLeonardoReply(full, opts.question), provider };
+  }
+  return null;
 }
 
-export { LEONARDO_SYSTEM_PROMPT };
+export { LEONARDO_SYSTEM_PROMPT } from "./prompt";

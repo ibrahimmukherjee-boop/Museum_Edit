@@ -77,23 +77,47 @@ export default function ConversationPage() {
 
     let reply: string;
     let provider = "cortex";
+    const aid = `a-${Date.now()}`;
+    setTurns((prev) => [...prev, { id: aid, role: "assistant", content: "" }]);
+    setTypingId(null);
+
     try {
       if (settings.devMode) {
         reply = demoLeonardoReply(t);
+        setTurns((prev) =>
+          prev.map((turn) => (turn.id === aid ? { ...turn, content: reply } : turn)),
+        );
       } else {
         const history = nextTurns.map((m) => ({ role: m.role, content: m.content }));
-        const result = await askLeonardo({ question: t, history });
+        const result = await askLeonardo({
+          question: t,
+          history,
+          onDraft: (draft) => {
+            setTurns((prev) =>
+              prev.map((turn) => (turn.id === aid ? { ...turn, content: draft } : turn)),
+            );
+          },
+          onToken: (_chunk, full) => {
+            setTurns((prev) =>
+              prev.map((turn) => (turn.id === aid ? { ...turn, content: full } : turn)),
+            );
+          },
+        });
         reply = result.reply || demoLeonardoReply(t);
         provider = result.provider;
         setLastProvider(provider);
+        setTurns((prev) =>
+          prev.map((turn) => (turn.id === aid ? { ...turn, content: reply } : turn)),
+        );
       }
     } catch {
       reply = demoLeonardoReply(t);
+      setTurns((prev) =>
+        prev.map((turn) => (turn.id === aid ? { ...turn, content: reply } : turn)),
+      );
     }
 
     reply = stripMuseumNavMarkers(reply);
-    const aid = `a-${Date.now()}`;
-    setTurns((prev) => [...prev, { id: aid, role: "assistant", content: reply }]);
     setTypingId(aid);
     setLoading(false);
 
@@ -177,7 +201,9 @@ export default function ConversationPage() {
         {loading && (
           <GlassPanel variant="cream" className="max-w-[92%] p-4">
             <span className="block font-[Cinzel] text-[0.65rem] tracking-[0.18em] text-[#2a2218]/45 uppercase">Leonardo</span>
-            <p className="mt-1 font-serif text-base italic text-[#2a2218]/55">Leonardo is thinking…</p>
+            <p className="mt-1 font-serif text-base italic text-[#2a2218]/55">
+              Leonardo is composing… (CORTEX draft appears first, then corpus SLM polish)
+            </p>
           </GlassPanel>
         )}
         {turns.length === 1 && !loading && (
@@ -233,18 +259,6 @@ export default function ConversationPage() {
               <input type="checkbox" checked={settings.devMode} onChange={(e) => patchSettings({ devMode: e.target.checked })} />
             </label>
             <p className="mt-1 text-xs text-[#2a2218]/50">CORTEX is on by default. Enable Demo for offline canned replies.</p>
-
-            <label className="mt-4 flex items-center justify-between gap-3 text-sm">
-              <span>Enhanced SLM voice (slower ~60s)</span>
-              <input
-                type="checkbox"
-                checked={settings.useLlmPolish}
-                onChange={(e) => patchSettings({ useLlmPolish: e.target.checked })}
-              />
-            </label>
-            <p className="mt-1 text-xs text-[#2a2218]/50">
-              Off by default for instant CORTEX replies. SLM (qwen2.5:3b) runs on the museum server when enabled.
-            </p>
 
             <label className="mt-4 flex items-center justify-between gap-3 text-sm">
               <span>Use local SLM (Ollama dev)</span>

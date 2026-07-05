@@ -21,6 +21,7 @@
     "museum": "npx concurrently -k \"npm run dev:api\" \"npm run dev\"",
     "sync:assets": "node scripts/sync-da-vinci-assets.mjs",
     "corpus:ingest": "node scripts/ingest-training-corpus.mjs",
+    "ollama:modelfile": "node scripts/build-leonardo-ollama-model.mjs",
     "setup:glm": "node scripts/setup-glm.mjs",
     "start": "tsx scripts/railway-server.ts",
     "docker:up": "docker compose up -d --build",

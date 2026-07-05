@@ -20,7 +20,8 @@ COPY public ./public
 ENV NODE_ENV=production
 ENV PORT=8080
 ENV OLLAMA_BASE_URL=http://ollama:11434
-ENV OLLAMA_MODEL=qwen2.5:3b
+ENV OLLAMA_MODEL=leonardo-museum
+ENV OLLAMA_BASE_MODEL=qwen2.5:0.5b
 ENV USE_OLLAMA=1
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \

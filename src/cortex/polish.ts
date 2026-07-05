@@ -38,7 +38,7 @@ export async function polishDraft(
 }
 
 export function polishProviderLabel(p: PolishProvider, model?: string): string {
-  const resolved = model ?? getActiveOllamaModel() ?? process.env.OLLAMA_MODEL ?? "qwen2.5:3b";
+  const resolved = model ?? getActiveOllamaModel() ?? process.env.OLLAMA_MODEL ?? "leonardo-museum";
   if (p === "ollama") return `cortex+${resolved}`;
   if (p === "groq") return "cortex+groq";
   if (p === "huggingface") return "cortex+hf";
